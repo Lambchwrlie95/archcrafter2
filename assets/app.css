@@ -1,0 +1,169 @@
+.preview-shell {
+    background-color: transparent;
+    border: none;
+    border-radius: 8px;
+}
+
+.wallpaper-title {
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.70);
+}
+
+.overlay-action-button {
+    background-color: transparent;
+    color: rgba(225, 233, 245, 0.82);
+    border-radius: 6px;
+    border: none;
+    min-height: 28px;
+    min-width: 28px;
+    padding: 0;
+}
+
+.overlay-action-button:hover {
+    background-color: rgba(255, 255, 255, 0.10);
+    color: #ffffff;
+}
+
+.overlay-action-button:active {
+    background-color: rgba(255, 255, 255, 0.16);
+    color: #ffffff;
+}
+
+.colorize-swatch {
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    border-radius: 10px;
+}
+
+.colorize-chip-button {
+    background-color: transparent;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    padding: 0;
+}
+
+.colorize-chip-button:hover {
+    background-color: transparent;
+    border-color: rgba(255, 255, 255, 0.34);
+}
+
+.colorized-badge {
+    background-color: rgba(20, 130, 200, 0.88);
+    color: #ffffff;
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.theme-card {
+    background-color: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 10px;
+    min-width: 170px;
+}
+
+.theme-card:hover {
+    background-color: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.16);
+}
+
+.theme-card-active {
+    border-color: rgba(91, 161, 234, 0.85);
+    background-color: rgba(91, 161, 234, 0.12);
+}
+
+.theme-title {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.theme-chip {
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    min-height: 12px;
+    min-width: 12px;
+}
+
+.theme-type-badge {
+    font-size: 9px;
+    font-weight: 700;
+    color: rgba(235, 240, 248, 0.92);
+    padding: 2px 6px;
+    border-radius: 4px;
+    background-color: rgba(91, 161, 234, 0.18);
+    border: 1px solid rgba(91, 161, 234, 0.42);
+}
+
+.theme-apply-button {
+    border-radius: 6px;
+    padding: 4px 10px;
+}
+
+#sidebar_list row {
+    margin: 1px 6px;
+    border-radius: 8px;
+}
+
+#sidebar_list row:selected {
+    background-color: rgba(91, 161, 234, 0.18);
+}
+
+#top_mode_bar {
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    padding-top: 6px;
+}
+
+#top_mode_links {
+    background-color: rgba(255, 255, 255, 0.01);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+}
+
+.mode-link-btn {
+    background-image: none;
+    background-color: transparent;
+    color: rgba(237, 240, 246, 0.90);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 0;
+    padding: 4px 8px;
+    min-height: 28px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.mode-link-btn:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #ffffff;
+}
+
+.mode-link-btn:checked {
+    background-color: rgba(91, 161, 234, 0.18);
+    border-color: rgba(91, 161, 234, 0.74);
+    color: #ffffff;
+}
+
+.mode-link-btn.mode-left {
+    border-top-left-radius: 10px;
+    border-bottom-left-radius: 10px;
+}
+
+.mode-link-btn.mode-mid {
+    border-left-width: 0;
+}
+
+.mode-link-btn.mode-right {
+    border-left-width: 0;
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+}
+
+.mode-placeholder-title {
+    font-size: 19px;
+    font-weight: 700;
+}
+
+.mode-placeholder-subtitle {
+    color: rgba(255, 255, 255, 0.72);
+}

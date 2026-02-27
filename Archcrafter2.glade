@@ -14,7 +14,7 @@
   <object class="GtkApplicationWindow" id="main_window">
     <property name="can_focus">False</property>
                                 <property name="hexpand">True</property>
-    <property name="title" translatable="yes">ArchCrafter2</property>
+    <property name="title" translatable="yes">Loom</property>
     <property name="window_position">center</property>
     <property name="default_width">1100</property>
     <property name="default_height">700</property>
@@ -30,7 +30,6 @@
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="orientation">vertical</property>
-            <property name="width_request">260</property>
             <property name="vexpand">True</property>
 
             <child>
@@ -409,52 +408,6 @@
                     </child>
 
                     <child>
-                      <object class="GtkListBoxRow" id="row_settings">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <child>
-                          <object class="GtkBox" id="box_settings">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="orientation">horizontal</property>
-                            <property name="spacing">12</property>
-                            <property name="margin_top">10</property>
-                            <property name="margin_bottom">10</property>
-                            <property name="margin_start">14</property>
-                            <property name="margin_end">14</property>
-                            <child>
-                              <object
-                                                                class="GtkImage"
-                                                                id="icon_settings_sidebar"
-                                                            >
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property
-                                                                    name="icon_name"
-                                                                >ac-settings-symbolic</property>
-                                <property name="pixel_size">22</property>
-                              </object>
-                            </child>
-                            <child>
-                              <object
-                                                                class="GtkLabel"
-                                                                id="label_settings_sidebar"
-                                                            >
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property
-                                                                    name="label"
-                                                                    translatable="yes"
-                                                                >Settings</property>
-                                <property name="xalign">0</property>
-                              </object>
-                            </child>
-                          </object>
-                        </child>
-                      </object>
-                    </child>
-
-                    <child>
                       <object class="GtkListBoxRow" id="row_more">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
@@ -518,10 +471,10 @@
             <property name="orientation">vertical</property>
             <property name="hexpand">True</property>
             <property name="vexpand">True</property>
-            <property name="margin_top">18</property>
-            <property name="margin_bottom">18</property>
-            <property name="margin_start">18</property>
-            <property name="margin_end">18</property>
+            <property name="margin_top">4</property>
+            <property name="margin_bottom">8</property>
+            <property name="margin_start">12</property>
+            <property name="margin_end">12</property>
 
             <child>
               <object class="GtkBox" id="top_mode_bar">
@@ -594,6 +547,119 @@
             </child>
 
             <child>
+              <object class="GtkBox" id="global_actions_bar">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="orientation">horizontal</property>
+                <property name="hexpand">True</property>
+                <property name="halign">fill</property>
+                <property name="margin_bottom">2</property>
+                <child>
+                  <object class="GtkBox" id="global_actions_spacer">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="hexpand">True</property>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkToggleButton" id="button_sidebar_toggle">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">False</property>
+                    <property name="relief">none</property>
+                    <property name="active">True</property>
+                    <property
+                                            name="tooltip_text"
+                                            translatable="yes"
+                                        >Toggle sidebar</property>
+                    <child>
+                      <object class="GtkImage" id="icon_sidebar_toggle">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property
+                                                    name="icon_name"
+                                                >sidebar-show-symbolic</property>
+                        <property name="pixel_size">18</property>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="pack_type">end</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="button_top_settings">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="relief">none</property>
+                    <property
+                                            name="tooltip_text"
+                                            translatable="yes"
+                                        >Settings</property>
+                    <child>
+                      <object class="GtkImage" id="icon_top_settings">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property
+                                                    name="icon_name"
+                                                >preferences-system-symbolic</property>
+                        <property name="pixel_size">18</property>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="pack_type">end</property>
+                    <property name="position">2</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+
+            <child>
+              <object class="GtkInfoBar" id="status_infobar">
+                <property name="visible">False</property>
+                <property name="can_focus">False</property>
+                <property name="no_show_all">True</property>
+                <property name="show_close_button">True</property>
+                <property name="message_type">info</property>
+                <child internal-child="content_area">
+                  <object class="GtkBox">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <child>
+                      <object class="GtkLabel" id="label_status_message">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="xalign">0</property>
+                        <property name="ellipsize">end</property>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
+
+            <child>
               <object class="GtkStack" id="content_stack">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
@@ -611,10 +677,10 @@
 
                     <child>
                       <object class="GtkBox" id="wallpaper_header_box">
-                        <property name="visible">True</property>
+                        <property name="visible">False</property>
                         <property name="can_focus">False</property>
                         <property name="orientation">horizontal</property>
-                        <property name="spacing">12</property>
+                        <property name="spacing">8</property>
                         <child>
                           <object class="GtkLabel" id="title_wallpapers">
                             <property name="visible">True</property>
@@ -655,7 +721,7 @@
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="orientation">horizontal</property>
-                        <property name="spacing">8</property>
+                        <property name="spacing">6</property>
 
                         <child>
                           <object class="GtkLabel" id="label_wallpaper_source">
@@ -1233,6 +1299,11 @@
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="orientation">vertical</property>
+                    <property name="spacing">12</property>
+                    <property name="margin_left">20</property>
+                    <property name="margin_right">20</property>
+                    <property name="margin_top">20</property>
+                    <property name="margin_bottom">20</property>
                     <child>
                       <object class="GtkLabel" id="title_icons">
                         <property name="visible">True</property>
@@ -1242,6 +1313,41 @@
                                                     translatable="yes"
                                                 >Icons</property>
                         <property name="xalign">0</property>
+                        <attributes>
+                          <attribute name="weight" value="bold" />
+                          <attribute name="scale" value="1.5" />
+                        </attributes>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkSearchEntry" id="entry_icons_search">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property
+                                                    name="placeholder_text"
+                                                    translatable="yes"
+                                                >Search icon themes...</property>
+                        <property name="width_chars">30</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkScrolledWindow" id="scroll_icons_themes">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="hexpand">True</property>
+                        <property name="vexpand">True</property>
+                        <property name="shadow_type">none</property>
+                        <child>
+                          <object class="GtkFlowBox" id="flowbox_icon_themes">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="selection_mode">none</property>
+                            <property name="column_spacing">12</property>
+                            <property name="row_spacing">12</property>
+                            <property name="min_children_per_line">1</property>
+                            <property name="max_children_per_line">6</property>
+                          </object>
+                        </child>
                       </object>
                     </child>
                   </object>
@@ -1256,6 +1362,11 @@
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="orientation">vertical</property>
+                    <property name="spacing">12</property>
+                    <property name="margin_left">20</property>
+                    <property name="margin_right">20</property>
+                    <property name="margin_top">20</property>
+                    <property name="margin_bottom">20</property>
                     <child>
                       <object class="GtkLabel" id="title_cursors">
                         <property name="visible">True</property>
@@ -1265,6 +1376,41 @@
                                                     translatable="yes"
                                                 >Cursors</property>
                         <property name="xalign">0</property>
+                        <attributes>
+                          <attribute name="weight" value="bold" />
+                          <attribute name="scale" value="1.5" />
+                        </attributes>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkSearchEntry" id="entry_cursors_search">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property
+                                                    name="placeholder_text"
+                                                    translatable="yes"
+                                                >Search cursor themes...</property>
+                        <property name="width_chars">30</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkScrolledWindow" id="scroll_cursor_themes">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="hexpand">True</property>
+                        <property name="vexpand">True</property>
+                        <property name="shadow_type">none</property>
+                        <child>
+                          <object class="GtkFlowBox" id="flowbox_cursor_themes">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="selection_mode">none</property>
+                            <property name="column_spacing">12</property>
+                            <property name="row_spacing">12</property>
+                            <property name="min_children_per_line">1</property>
+                            <property name="max_children_per_line">6</property>
+                          </object>
+                        </child>
                       </object>
                     </child>
                   </object>
@@ -1327,7 +1473,7 @@
               <packing>
                 <property name="expand">True</property>
                 <property name="fill">True</property>
-                <property name="position">0</property>
+                <property name="position">3</property>
               </packing>
             </child>
           </object>

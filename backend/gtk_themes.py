@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from pathlib import Path
+import json
 import re
 import subprocess
+from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 from .settings import SettingsStore
@@ -34,6 +35,59 @@ class GtkThemeService:
         ]
         # cache key: absolute css path -> (mtime, metadata)
         self._metadata_cache: dict[str, tuple[float, dict[str, Any]]] = {}
+        self._metadata_cache_dirty = False
+        self.cache_dir = self.base_dir / "cache"
+        self.metadata_cache_file = self.cache_dir / "gtk_theme_metadata.json"
+        self._load_metadata_cache_from_disk()
+
+    def _load_metadata_cache_from_disk(self) -> None:
+        self._metadata_cache = {}
+        if not self.metadata_cache_file.exists():
+            return
+        try:
+            payload = json.loads(self.metadata_cache_file.read_text(encoding="utf-8"))
+            if not isinstance(payload, dict):
+                return
+            entries = payload.get("entries", {})
+            if not isinstance(entries, dict):
+                return
+            for key, value in entries.items():
+                if not isinstance(key, str) or not isinstance(value, dict):
+                    continue
+                mtime = float(value.get("mtime", 0.0))
+                meta = value.get("meta", {})
+                if not isinstance(meta, dict):
+                    continue
+                colors = meta.get("colors", {})
+                theme_type = str(meta.get("type", "unknown"))
+                if not isinstance(colors, dict):
+                    continue
+                self._metadata_cache[key] = (
+                    mtime,
+                    {"colors": dict(colors), "type": theme_type},
+                )
+        except Exception:
+            self._metadata_cache = {}
+
+    def _save_metadata_cache_to_disk(self) -> None:
+        if not self._metadata_cache_dirty:
+            return
+        try:
+            self.cache_dir.mkdir(parents=True, exist_ok=True)
+            entries: dict[str, dict[str, Any]] = {}
+            for key, (mtime, meta) in self._metadata_cache.items():
+                entries[key] = {"mtime": float(mtime), "meta": dict(meta)}
+
+            payload = {"version": 1, "entries": entries}
+            tmp = self.metadata_cache_file.with_suffix(".json.tmp")
+            tmp.write_text(
+                json.dumps(payload, indent=2, ensure_ascii=True) + "\n",
+                encoding="utf-8",
+            )
+            tmp.replace(self.metadata_cache_file)
+            self._metadata_cache_dirty = False
+        except Exception:
+            pass
 
     def _theme_search_paths(self) -> list[Path]:
         return [p for p in self.system_dirs + self.user_dirs if p.exists()]
@@ -64,6 +118,7 @@ class GtkThemeService:
                     type=metadata["type"],
                 )
 
+        self._save_metadata_cache_to_disk()
         return sorted(found.values(), key=lambda x: x.name.lower())
 
     def _looks_dark_name(self, name: str) -> bool:
@@ -76,7 +131,9 @@ class GtkThemeService:
         tokens = ("light", "white", "day")
         return any(t in n for t in tokens)
 
-    def _extract_color_from_css(self, content: str, names: tuple[str, ...]) -> str | None:
+    def _extract_color_from_css(
+        self, content: str, names: tuple[str, ...]
+    ) -> str | None:
         for key in names:
             # @define-color theme_bg_color #2f343f;
             m_define = re.search(
@@ -124,7 +181,9 @@ class GtkThemeService:
 
         try:
             content = css_path.read_text(errors="ignore")
-            bg = self._extract_color_from_css(content, ("theme_bg_color", "theme_base_color", "bg_color"))
+            bg = self._extract_color_from_css(
+                content, ("theme_bg_color", "theme_base_color", "bg_color")
+            )
             fg = self._extract_color_from_css(content, ("theme_fg_color", "fg_color"))
             accent = self._extract_color_from_css(
                 content,
@@ -160,6 +219,7 @@ class GtkThemeService:
 
         meta: dict[str, Any] = {"colors": colors, "type": theme_type}
         self._metadata_cache[cache_key] = (mtime, dict(meta))
+        self._metadata_cache_dirty = True
         return meta
 
     def _normalize_color(self, value: str) -> str | None:
@@ -225,7 +285,13 @@ class GtkThemeService:
 
         try:
             res = subprocess.run(
-                ["gsettings", "set", "org.gnome.desktop.interface", "gtk-theme", theme_name],
+                [
+                    "gsettings",
+                    "set",
+                    "org.gnome.desktop.interface",
+                    "gtk-theme",
+                    theme_name,
+                ],
                 capture_output=True,
                 text=True,
                 check=False,
