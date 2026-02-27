@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from pathlib import Path
+import os
 import shutil
 import subprocess
+from dataclasses import dataclass
+from pathlib import Path
 
 from .settings import SettingsStore
 from .wallpaper_names import WallpaperNameStore
-
 
 SUPPORTED_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
 FILL_MODES = ["zoom-fill", "centered", "scaled", "tiled", "auto"]
@@ -15,6 +15,13 @@ SORT_MODES = ["name_asc", "name_desc", "newest", "oldest"]
 THUMB_SIZE_MIN = 180
 THUMB_SIZE_MAX = 420
 THUMB_SIZE_DEFAULT = 280
+ASKPASS_CANDIDATES = [
+    "/usr/bin/ssh-askpass",
+    "/usr/lib/ssh/ssh-askpass",
+    "/usr/bin/ksshaskpass",
+    "/usr/bin/lxqt-openssh-askpass",
+    "/usr/bin/gnome-ssh-askpass",
+]
 
 
 @dataclass(frozen=True)
@@ -30,7 +37,10 @@ class WallpaperService:
         self.library_dir = self.base_dir / "library" / "wallpapers"
         self.colorized_dir = self.library_dir / "colorized"
         self.legacy_colorized_dir = self.base_dir / "cache" / "wallpaper_variants"
-        self.system_dirs = [Path("/usr/share/backgrounds"), Path("/usr/share/wallpapers")]
+        self.system_dirs = [
+            Path("/usr/share/backgrounds"),
+            Path("/usr/share/wallpapers"),
+        ]
         self.library_dir.mkdir(parents=True, exist_ok=True)
         self.colorized_dir.mkdir(parents=True, exist_ok=True)
         self._import_legacy_colorized_variants()
@@ -57,7 +67,9 @@ class WallpaperService:
         section.setdefault("source", "custom")
         section.setdefault("fill_mode", "zoom-fill")
         section.setdefault("view_mode", "grid")
-        section.setdefault("custom_dirs", [str(self.library_dir), str(self.colorized_dir)])
+        section.setdefault(
+            "custom_dirs", [str(self.library_dir), str(self.colorized_dir)]
+        )
         section.setdefault("sort_mode", "name_asc")
         section.setdefault("thumb_size", THUMB_SIZE_DEFAULT)
         section.setdefault("colorize_strength", 65)
@@ -202,7 +214,78 @@ class WallpaperService:
     def clear_display_name(self, path: Path) -> None:
         self.name_store.remove(path)
 
-    def apply_wallpaper(self, path: Path) -> tuple[bool, str]:
+    def _is_system_wallpaper(self, path: Path) -> bool:
+        try:
+            target = path.resolve()
+        except Exception:
+            target = path
+        for base in self.system_dirs:
+            try:
+                if target.is_relative_to(base.resolve()):
+                    return True
+            except Exception:
+                continue
+        return False
+
+    def _resolve_askpass_binary(self) -> str | None:
+        configured = os.environ.get("SUDO_ASKPASS", "").strip()
+        if configured:
+            p = Path(configured)
+            if p.exists() and os.access(str(p), os.X_OK):
+                return str(p)
+
+        for candidate in ASKPASS_CANDIDATES:
+            p = Path(candidate)
+            if p.exists() and os.access(str(p), os.X_OK):
+                return str(p)
+        return None
+
+    def delete_wallpaper(self, path: Path | str) -> tuple[bool, str]:
+        wp = Path(path).expanduser()
+        if not wp.exists():
+            return False, "Delete failed: file missing."
+        if not wp.is_file():
+            return False, "Delete failed: target is not a file."
+
+        try:
+            wp.unlink()
+            return True, f"Deleted: {wp.name}"
+        except PermissionError:
+            # Fall through to sudo askpass path below.
+            pass
+        except Exception as exc:
+            # For system wallpaper paths we still try sudo fallback.
+            if not self._is_system_wallpaper(wp):
+                return False, f"Delete failed: {exc}"
+
+        sudo = shutil.which("sudo")
+        if not sudo:
+            return False, "Delete failed: sudo is not installed."
+
+        askpass = self._resolve_askpass_binary()
+        if not askpass:
+            return False, "Delete failed: askpass helper not found. Set SUDO_ASKPASS."
+
+        env = dict(os.environ)
+        env["SUDO_ASKPASS"] = askpass
+        res = subprocess.run(
+            [sudo, "-A", "-k", "rm", "-f", "--", str(wp)],
+            capture_output=True,
+            text=True,
+            check=False,
+            env=env,
+        )
+        if res.returncode != 0:
+            detail = (res.stderr or res.stdout or "").strip()
+            if not detail:
+                detail = "sudo rm failed."
+            return False, f"Delete failed: {detail}"
+
+        if wp.exists():
+            return False, "Delete failed: file still exists after sudo rm."
+        return True, f"Deleted: {wp.name}"
+
+    def apply_wallpaper(self, path: Path | str) -> tuple[bool, str]:
         wp = Path(path)
         if not wp.exists():
             return False, "Wallpaper file not found."

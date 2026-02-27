@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-from pathlib import Path
 import colorsys
 import hashlib
 import math
@@ -8,6 +7,7 @@ import shutil
 import subprocess
 import sys
 import threading
+from pathlib import Path
 
 import gi
 
@@ -15,10 +15,11 @@ gi.require_version("Gtk", "3.0")
 gi.require_version("GdkPixbuf", "2.0")
 gi.require_version("Pango", "1.0")
 gi.require_version("Gdk", "3.0")
-from gi.repository import Gdk, GdkPixbuf, Gtk, Pango, GLib
+from typing import Any, Optional
 
-from backend import SettingsStore, WallpaperService, WindowThemeService, GtkThemeService
+from gi.repository import Gdk, GdkPixbuf, GLib, Gtk, Pango
 
+from backend import GtkThemeService, SettingsStore, WallpaperService, WindowThemeService
 
 BASE_DIR = Path(__file__).resolve().parent
 PRIMARY_GLADE = BASE_DIR / "Archcrafter2.glade"
@@ -37,19 +38,85 @@ ROW_TO_PAGE = {
     "row_wallpapers": "wallpapers",
     "row_gtk_themes": "gtk_themes",
     "row_window_themes": "window_themes",
-    "row_openbox": "openbox",
     "row_panels": "panels",
-    "row_rofi": "rofi",
     "row_jgmenu": "menu",
     "row_terminals": "terminals",
     "row_fetch": "fetch",
     "row_icons": "icons",
     "row_cursors": "cursors",
     "row_more": "more",
+    "row_settings": "settings",
+}
+
+MODE_SIDEBAR_ITEMS = {
+    "builder": [
+        (
+            "builder_home",
+            "Builder Home",
+            "applications-development-symbolic",
+            "Build and organize module structure",
+        ),
+        (
+            "builder_layout",
+            "Layout",
+            "view-list-symbolic",
+            "Arrange containers and spacing",
+        ),
+        (
+            "builder_widgets",
+            "Widgets",
+            "insert-object-symbolic",
+            "Manage widget templates and IDs",
+        ),
+        (
+            "builder_signals",
+            "Signals",
+            "network-transmit-receive-symbolic",
+            "Wire and review signal handlers",
+        ),
+        (
+            "builder_assets",
+            "Assets",
+            "folder-symbolic",
+            "Review assets and integration points",
+        ),
+    ],
+    "presets": [
+        (
+            "presets_home",
+            "Presets Home",
+            "view-grid-symbolic",
+            "Browse and organize preset packs",
+        ),
+        (
+            "presets_wallpapers",
+            "Wallpaper Presets",
+            "image-x-generic-symbolic",
+            "Saved wallpaper combinations",
+        ),
+        (
+            "presets_gtk",
+            "GTK Presets",
+            "preferences-desktop-theme-symbolic",
+            "Saved GTK theme sets",
+        ),
+        (
+            "presets_window",
+            "Window Presets",
+            "window-new-symbolic",
+            "Saved Openbox window theme sets",
+        ),
+        (
+            "presets_icons",
+            "Icon Presets",
+            "folder-pictures-symbolic",
+            "Saved icon and cursor sets",
+        ),
+    ],
 }
 
 
-def find_glade_window(builder):
+def find_glade_window(builder: Gtk.Builder) -> Optional[Gtk.Window]:
     for obj in builder.get_objects():
         if isinstance(obj, Gtk.ApplicationWindow):
             return obj
@@ -62,10 +129,10 @@ def find_glade_window(builder):
 class ArchCrafter2App(Gtk.Application):
     def __init__(self):
         super().__init__(application_id="org.archcrafter2.app")
-        self.window = None
-        self.builder = None
-        self.sidebar_list = None
-        self.content_stack = None
+        self.window: Optional[Gtk.Window] = None
+        self.builder: Optional[Gtk.Builder] = None
+        self.sidebar_list: Optional[Gtk.ListBox] = None
+        self.content_stack: Optional[Gtk.Stack] = None
 
         self.settings = SettingsStore(BASE_DIR / "settings.json")
         self.wallpaper_service = WallpaperService(BASE_DIR, self.settings)
@@ -77,30 +144,52 @@ class ArchCrafter2App(Gtk.Application):
         self.combo_wallpaper_sort = None
         self.entry_wallpaper_search = None
         self.chooser_wallpaper_folder = None
+        self.button_top_settings = None
         self.wallpaper_view_stack = None
         self.wallpaper_view_switcher = None
+        self.wallpaper_grid_scroller = None
         self.wallpaper_flowbox = None
         self.label_wallpaper_count = None
         self.scale_wallpaper_thumb_size = None
         self.flowbox_window_themes = None
         self.flowbox_gtk_themes = None
+        self.entry_gtk_themes_search: Optional[Gtk.Entry] = None
+        self.combo_gtk_themes_filter: Optional[Gtk.ComboBoxText] = None
+        self.gtk_theme_preview_container: Optional[Gtk.Frame] = None
+        self.gtk_theme_preview_provider = Gtk.CssProvider()
+        self._gtk_theme_preview_provider_attached = False
+        self._gtk_theme_reload_id = 0
 
         self.sidebar_box = None
         self.content_box = None
         self.mode_mixer_btn = None
+        self.mode_builder_btn = None
         self.mode_presets_btn = None
-        self.mode_settings_btn = None
         self.mode_placeholder = None
         self.mode_placeholder_title = None
         self.mode_placeholder_subtitle = None
         self.top_mode_bar = None
         self.top_mode_links = None
         self.sidebar_scroller = None
+        self.root_hbox = None
+        self.main_paned = None
+        self.builder_sidebar_list: Optional[Gtk.ListBox] = None
+        self.presets_sidebar_list: Optional[Gtk.ListBox] = None
+        self.active_top_mode = "mixer"
+        self._mode_sidebar_selection = {
+            "builder": "builder_home",
+            "presets": "presets_home",
+        }
+        self._sidebar_width_save_source = None
+        self._pending_sidebar_width = None
+        self._gtk_theme_meta_by_name = {}
+        self._icon_search_paths_registered = False
 
         self.thumb_width = self.wallpaper_service.get_thumb_size()
         self._thumb_size_reload_source = None
 
         self._loading_wallpaper_state = False
+        self._wallpaper_bottom_bar_ready = False
         self._palette_cache = {}
         self._preview_window = None
         self.variant_dir = BASE_DIR / "library" / "wallpapers" / "colorized"
@@ -118,37 +207,187 @@ class ArchCrafter2App(Gtk.Application):
         if page_name:
             self.content_stack.set_visible_child_name(page_name)
 
+    def _build_mode_sidebar_list(self, mode: str) -> Gtk.ListBox:
+        listbox = Gtk.ListBox()
+        listbox.set_name("sidebar_list")
+        listbox.set_selection_mode(Gtk.SelectionMode.SINGLE)
+        listbox.set_activate_on_single_click(True)
+        listbox.set_hexpand(True)
+        listbox.set_vexpand(True)
+        listbox.set_visible(True)
+
+        for item_id, title, icon_name, subtitle in MODE_SIDEBAR_ITEMS.get(mode, []):
+            row = Gtk.ListBoxRow()
+            row.set_name(f"row_{item_id}")
+            row.set_visible(True)
+            row.set_can_focus(True)
+
+            row.set_data("mode_item_id", item_id)
+            row.set_data("mode_item_title", title)
+            row.set_data("mode_item_subtitle", subtitle)
+
+            box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+            box.set_visible(True)
+            box.set_margin_top(10)
+            box.set_margin_bottom(10)
+            box.set_margin_start(14)
+            box.set_margin_end(14)
+
+            icon = Gtk.Image.new_from_icon_name(icon_name, Gtk.IconSize.MENU)
+            icon.set_pixel_size(22)
+            icon.set_visible(True)
+
+            label = Gtk.Label(label=title)
+            label.set_visible(True)
+            label.set_xalign(0.0)
+
+            box.pack_start(icon, False, False, 0)
+            box.pack_start(label, True, True, 0)
+            row.add(box)
+            listbox.add(row)
+
+        listbox.connect("row-selected", self.on_mode_sidebar_row_selected, mode)
+        listbox.show_all()
+        return listbox
+
+    def _ensure_mode_sidebars(self):
+        if self.builder_sidebar_list is None:
+            self.builder_sidebar_list = self._build_mode_sidebar_list("builder")
+        if self.presets_sidebar_list is None:
+            self.presets_sidebar_list = self._build_mode_sidebar_list("presets")
+
+    def _get_mode_sidebar_widget(self, mode: str):
+        self._ensure_mode_sidebars()
+        if mode == "builder":
+            return self.builder_sidebar_list
+        if mode == "presets":
+            return self.presets_sidebar_list
+        return self.sidebar_list
+
+    def _swap_sidebar_widget(self, target):
+        if self.sidebar_scroller is None or target is None:
+            return
+        current = self.sidebar_scroller.get_child()
+        if current is target:
+            return
+        if current is not None:
+            self.sidebar_scroller.remove(current)
+        self.sidebar_scroller.add(target)
+        target.show_all()
+
+    def _find_row_by_item_id(self, listbox: Gtk.ListBox, item_id: str):
+        for row in listbox.get_children():
+            if not isinstance(row, Gtk.ListBoxRow):
+                continue
+            if str(row.get_data("mode_item_id") or "") == item_id:
+                return row
+        return None
+
+    def _restore_mode_sidebar_selection(self, mode: str):
+        widget = self._get_mode_sidebar_widget(mode)
+        if widget is None:
+            return
+        if mode not in {"builder", "presets"}:
+            return
+        wanted = str(self._mode_sidebar_selection.get(mode, "")).strip()
+        row = self._find_row_by_item_id(widget, wanted)
+        if row is None:
+            row = widget.get_row_at_index(0)
+        if row is not None:
+            widget.select_row(row)
+
+    def _current_mode_sidebar_title_subtitle(self, mode: str):
+        widget = self._get_mode_sidebar_widget(mode)
+        if widget is None:
+            if mode == "builder":
+                return ("Builder", "Builder workspace")
+            if mode == "presets":
+                return ("Presets", "Presets workspace")
+            return ("", "")
+        row = widget.get_selected_row()
+        if row is None:
+            row = widget.get_row_at_index(0)
+        if row is None:
+            if mode == "builder":
+                return ("Builder", "Builder workspace")
+            if mode == "presets":
+                return ("Presets", "Presets workspace")
+            return ("", "")
+        title = str(row.get_data("mode_item_title") or mode.title())
+        subtitle = str(row.get_data("mode_item_subtitle") or "")
+        return (title, subtitle)
+
+    def on_mode_sidebar_row_selected(self, _listbox, row, mode: str):
+        if row is None:
+            return
+        item_id = str(row.get_data("mode_item_id") or "").strip()
+        if item_id:
+            self._mode_sidebar_selection[mode] = item_id
+        if self.active_top_mode != mode:
+            return
+        if self.mode_placeholder_title is not None:
+            self.mode_placeholder_title.set_text(
+                str(row.get_data("mode_item_title") or mode.title())
+            )
+        if self.mode_placeholder_subtitle is not None:
+            self.mode_placeholder_subtitle.set_text(
+                str(row.get_data("mode_item_subtitle") or "")
+            )
+
+    def _register_icon_search_paths(self):
+        if self._icon_search_paths_registered:
+            return
+
+        icon_theme = Gtk.IconTheme.get_default()
+        if icon_theme is None:
+            return
+
+        for d in (
+            BASE_DIR / "assets" / "icons",
+            BASE_DIR.parent / "archcrafter" / "ui" / "assets" / "icons",
+        ):
+            try:
+                if d.exists():
+                    icon_theme.append_search_path(str(d))
+            except Exception:
+                pass
+
+        self._icon_search_paths_registered = True
+
     def init_top_mode_bar(self):
+        assert self.builder is not None
         self.sidebar_box = self.builder.get_object("sidebar_box")
         self.sidebar_scroller = self.builder.get_object("sidebar_scroller")
         self.content_box = self.builder.get_object("content_box")
+        self.root_hbox = self.builder.get_object("root_hbox")
         self.top_mode_bar = self.builder.get_object("top_mode_bar")
         self.top_mode_links = self.builder.get_object("top_mode_links")
         self.mode_mixer_btn = self.builder.get_object("mode_mixer_btn")
+        self.mode_builder_btn = self.builder.get_object("mode_builder_btn")
         self.mode_presets_btn = self.builder.get_object("mode_presets_btn")
-        self.mode_settings_btn = self.builder.get_object("mode_settings_btn")
 
         self._configure_mode_button(
             self.mode_mixer_btn,
             "mixer",
-            "view-grid-symbolic",
+            "media-eq-symbolic",
             "mixer",
             "mode-left",
         )
         self._configure_mode_button(
-            self.mode_presets_btn,
-            "presets",
-            "starred-symbolic",
-            "presets",
+            self.mode_builder_btn,
+            "builder",
+            "applications-development-symbolic",
+            "builder",
             "mode-mid",
         )
         self._configure_mode_button(
-            self.mode_settings_btn,
-            "settings",
-            "preferences-system-symbolic",
-            "settings",
+            self.mode_presets_btn,
+            "presets",
+            "view-grid-symbolic",
+            "presets",
             "mode-right",
         )
+        self._ensure_resizable_layout()
 
         if self.sidebar_box is not None and self.top_mode_bar is not None:
             try:
@@ -202,12 +441,23 @@ class ArchCrafter2App(Gtk.Application):
             self.mode_placeholder_title = title
             self.mode_placeholder_subtitle = subtitle
 
-        if self.mode_mixer_btn is not None:
-            self.mode_mixer_btn.set_active(True)
-        self.apply_top_mode("mixer")
+        ui = self.settings.get_section("ui", default={})
+        start_mode = str(ui.get("top_mode", "mixer")).strip().lower()
 
+        if start_mode == "builder" and self.mode_builder_btn is not None:
+            self.mode_builder_btn.set_active(True)
+            self.apply_top_mode("builder")
+        elif start_mode == "presets" and self.mode_presets_btn is not None:
+            self.mode_presets_btn.set_active(True)
+            self.apply_top_mode("presets")
+        else:
+            if self.mode_mixer_btn is not None:
+                self.mode_mixer_btn.set_active(True)
+            self.apply_top_mode("mixer")
 
-    def _configure_mode_button(self, button, label: str, icon_name: str, mode: str, edge_class: str):
+    def _configure_mode_button(
+        self, button, label: str, icon_name: str, mode: str, edge_class: str
+    ):
         if button is None:
             return
         button.set_label(label)
@@ -217,38 +467,225 @@ class ArchCrafter2App(Gtk.Application):
         button.set_relief(Gtk.ReliefStyle.NONE)
         button.set_always_show_image(True)
         button.set_image_position(Gtk.PositionType.LEFT)
-        button.set_image(Gtk.Image.new_from_icon_name(icon_name, Gtk.IconSize.MENU))
+        img = Gtk.Image.new_from_icon_name(icon_name, Gtk.IconSize.MENU)
+        img.set_pixel_size(14)
+        button.set_image(img)
         ctx = button.get_style_context()
         ctx.add_class("mode-link-btn")
         ctx.add_class(edge_class)
         button.connect("toggled", self.on_top_mode_toggled, mode)
 
+    def _ensure_resizable_layout(self):
+        if (
+            self.root_hbox is None
+            or self.sidebar_box is None
+            or self.content_box is None
+        ):
+            return
+
+        if self.main_paned is None:
+            for child in self.root_hbox.get_children():
+                if isinstance(child, Gtk.Paned):
+                    self.main_paned = child
+                    break
+
+        if self.main_paned is None:
+            try:
+                if self.sidebar_box.get_parent() is self.root_hbox:
+                    self.root_hbox.remove(self.sidebar_box)
+                if self.content_box.get_parent() is self.root_hbox:
+                    self.root_hbox.remove(self.content_box)
+            except Exception:
+                return
+
+            paned = Gtk.Paned.new(Gtk.Orientation.HORIZONTAL)
+            paned.set_wide_handle(True)
+            paned.set_hexpand(True)
+            paned.set_vexpand(True)
+            paned.add1(self.sidebar_box)
+            paned.add2(self.content_box)
+            self.root_hbox.pack_start(paned, True, True, 0)
+            self.main_paned = paned
+
+        ui = self.settings.get_section("ui", default={})
+        try:
+            sidebar_width = int(ui.get("sidebar_width", 260))
+        except Exception:
+            sidebar_width = 260
+        sidebar_width = max(220, min(520, sidebar_width))
+
+        self.main_paned.set_position(sidebar_width)
+        self.main_paned.connect("notify::position", self.on_main_paned_position_changed)
+        self.main_paned.show_all()
+
+    def on_main_paned_position_changed(self, paned, _pspec):
+        self._pending_sidebar_width = max(220, min(520, int(paned.get_position())))
+        if self._sidebar_width_save_source is None:
+            self._sidebar_width_save_source = GLib.timeout_add(
+                250, self._flush_sidebar_width_save
+            )
+
+    def _flush_sidebar_width_save(self):
+        self._sidebar_width_save_source = None
+        if self._pending_sidebar_width is None:
+            return False
+
+        ui = self.settings.get_section("ui", default={})
+        current = ui.get("sidebar_width")
+        if current != self._pending_sidebar_width:
+            ui["sidebar_width"] = self._pending_sidebar_width
+            self.settings.save()
+        return False
+
     def apply_top_mode(self, mode: str):
-        is_mixer = mode == "mixer"
+        mode = str(mode or "mixer").strip().lower()
+        if mode not in {"mixer", "builder", "presets"}:
+            mode = "mixer"
+        self.active_top_mode = mode
 
         if self.sidebar_scroller is not None:
-            self.sidebar_scroller.set_visible(is_mixer)
+            self.sidebar_scroller.set_visible(True)
+
+        if mode == "builder":
+            self._swap_sidebar_widget(self._get_mode_sidebar_widget("builder"))
+            self._restore_mode_sidebar_selection("builder")
+        elif mode == "presets":
+            self._swap_sidebar_widget(self._get_mode_sidebar_widget("presets"))
+            self._restore_mode_sidebar_selection("presets")
+        else:
+            self._swap_sidebar_widget(self.sidebar_list)
+
+        show_placeholder = mode in {"builder", "presets"}
 
         if self.content_stack is not None:
-            self.content_stack.set_visible(is_mixer)
+            self.content_stack.set_visible(not show_placeholder)
 
         if self.mode_placeholder is not None:
-            self.mode_placeholder.set_visible(not is_mixer)
-            if not is_mixer:
-                if mode == "presets":
-                    self.mode_placeholder_title.set_text("Presets")
-                    self.mode_placeholder_subtitle.set_text("Preset management will be added here.")
-                elif mode == "settings":
-                    self.mode_placeholder_title.set_text("Settings")
-                    self.mode_placeholder_subtitle.set_text("Global app settings will be added here.")
+            if show_placeholder:
+                title, subtitle = self._current_mode_sidebar_title_subtitle(mode)
+                if self.mode_placeholder_title is not None:
+                    self.mode_placeholder_title.set_text(title)
+                if self.mode_placeholder_subtitle is not None:
+                    self.mode_placeholder_subtitle.set_text(subtitle)
+                self.mode_placeholder.show()
             else:
-                self.mode_placeholder_title.set_text("")
-                self.mode_placeholder_subtitle.set_text("")
+                self.mode_placeholder.hide()
+
+        ui = self.settings.get_section("ui", default={})
+        if ui.get("top_mode") != mode:
+            ui["top_mode"] = mode
+            self.settings.save()
 
     def on_top_mode_toggled(self, button, mode: str):
         if not button.get_active():
             return
         self.apply_top_mode(mode)
+
+    def on_top_settings_clicked(self, _button):
+        # Settings lives in the mixer content stack; force mixer mode first.
+        if self.mode_mixer_btn is not None:
+            self.mode_mixer_btn.set_active(True)
+        if self.sidebar_list is not None:
+            for row in self.sidebar_list.get_children():
+                if Gtk.Buildable.get_name(row) == "row_settings":
+                    self.sidebar_list.select_row(row)
+                    break
+        if self.content_stack is not None:
+            self.content_stack.set_visible_child_name("settings")
+
+    def _reparent_box_child(
+        self,
+        widget,
+        target_box: Gtk.Box,
+        expand: bool = False,
+        fill: bool = False,
+        padding: int = 0,
+        pack_end: bool = False,
+    ):
+        if widget is None or target_box is None:
+            return
+
+        current_parent = widget.get_parent()
+        if current_parent is target_box:
+            return
+
+        if current_parent is not None:
+            current_parent.remove(widget)
+
+        if pack_end:
+            target_box.pack_end(widget, expand, fill, padding)
+        else:
+            target_box.pack_start(widget, expand, fill, padding)
+
+    def _ensure_wallpaper_bottom_bar(self):
+        if self.builder is None:
+            return
+        if self._wallpaper_bottom_bar_ready:
+            return
+
+        page = self.builder.get_object("page_wallpapers")
+        header_box = self.builder.get_object("wallpaper_header_box")
+        controls_box = self.builder.get_object("wallpaper_controls_box")
+        title = self.builder.get_object("title_wallpapers")
+        count = self.builder.get_object("label_wallpaper_count")
+        size_label = self.builder.get_object("label_wallpaper_thumb_size")
+        size_sep = self.builder.get_object("sep_wallpaper_ctrl_size")
+        settings_icon = self.builder.get_object("icon_top_settings")
+
+        if page is None:
+            return
+
+        # Compact the top controls row and keep settings action near controls.
+        page.set_spacing(4)
+        if controls_box is not None:
+            controls_box.set_spacing(7)
+            controls_box.set_hexpand(False)
+            controls_box.set_halign(Gtk.Align.START)
+        if settings_icon is not None:
+            settings_icon.set_from_icon_name(
+                "preferences-system-symbolic", Gtk.IconSize.MENU
+            )
+            settings_icon.set_pixel_size(18)
+        if self.button_top_settings is not None and controls_box is not None:
+            self.button_top_settings.set_margin_start(6)
+            self._reparent_box_child(
+                self.button_top_settings, controls_box, False, False, 0
+            )
+        if header_box is not None:
+            header_box.set_no_show_all(True)
+            header_box.hide()
+
+        bottom_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        Gtk.Buildable.set_name(bottom_bar, "wallpaper_bottom_bar")
+        bottom_bar.set_hexpand(True)
+        bottom_bar.set_margin_start(10)
+        bottom_bar.set_margin_end(10)
+        bottom_bar.set_margin_top(0)
+        bottom_bar.set_margin_bottom(0)
+
+        info_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        info_box.set_hexpand(True)
+        info_box.set_halign(Gtk.Align.START)
+
+        size_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        size_box.set_halign(Gtk.Align.END)
+
+        bottom_bar.pack_start(info_box, True, True, 0)
+        bottom_bar.pack_end(size_box, False, False, 0)
+
+        self._reparent_box_child(title, info_box, False, False, 0)
+        self._reparent_box_child(count, info_box, False, False, 0)
+        self._reparent_box_child(size_label, size_box, False, False, 0)
+        self._reparent_box_child(
+            self.scale_wallpaper_thumb_size, size_box, False, False, 0
+        )
+
+        if size_sep is not None:
+            size_sep.hide()
+
+        page.pack_end(bottom_bar, False, True, 0)
+        bottom_bar.show_all()
+        self._wallpaper_bottom_bar_ready = True
 
     def _show_message(self, message: str):
         print(message)
@@ -257,7 +694,11 @@ class ArchCrafter2App(Gtk.Application):
 
     def _get_colorized_badge_css(self):
         section = self.settings.get_section("wallpapers", default={})
-        raw = str(section.get("colorized_tag_color", section.get("colorized_badge_color", "#1482C8"))).strip()
+        raw = str(
+            section.get(
+                "colorized_tag_color", section.get("colorized_badge_color", "#1482C8")
+            )
+        ).strip()
 
         if raw.startswith("#"):
             raw = raw[1:]
@@ -347,34 +788,72 @@ class ArchCrafter2App(Gtk.Application):
             font-size: 12px;
             font-weight: 600;
         }
+        .theme-chip {
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            min-height: 12px;
+            min-width: 12px;
+        }
+        .theme-type-badge {
+            font-size: 9px;
+            font-weight: 700;
+            color: rgba(235, 240, 248, 0.92);
+            padding: 2px 6px;
+            border-radius: 4px;
+            background-color: rgba(91, 161, 234, 0.18);
+            border: 1px solid rgba(91, 161, 234, 0.42);
+        }
+        .theme-apply-button {
+            border-radius: 6px;
+            padding: 4px 10px;
+        }
+        #sidebar_list row {
+            margin: 1px 6px;
+            border-radius: 8px;
+        }
+        #sidebar_list row:selected {
+            background-color: rgba(91, 161, 234, 0.18);
+        }
+        #top_mode_bar {
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            padding-top: 6px;
+        }
+        #top_mode_links {
+            background-color: rgba(255, 255, 255, 0.01);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 10px;
+        }
         .mode-link-btn {
             background-image: none;
             background-color: transparent;
-            color: rgba(237, 240, 246, 0.88);
-            border: 1px solid rgba(255, 255, 255, 0.14);
+            color: rgba(237, 240, 246, 0.90);
+            border: 1px solid rgba(255, 255, 255, 0.12);
             border-radius: 0;
-            padding: 6px 8px;
+            padding: 4px 8px;
+            min-height: 28px;
+            font-size: 11px;
+            font-weight: 500;
         }
         .mode-link-btn:hover {
-            background-color: rgba(255, 255, 255, 0.06);
+            background-color: rgba(255, 255, 255, 0.05);
             color: #ffffff;
         }
         .mode-link-btn:checked {
-            background-color: rgba(91, 161, 234, 0.15);
-            border-color: rgba(91, 161, 234, 0.78);
+            background-color: rgba(91, 161, 234, 0.18);
+            border-color: rgba(91, 161, 234, 0.74);
             color: #ffffff;
         }
         .mode-link-btn.mode-left {
-            border-top-left-radius: 8px;
-            border-bottom-left-radius: 8px;
+            border-top-left-radius: 10px;
+            border-bottom-left-radius: 10px;
         }
         .mode-link-btn.mode-mid {
             border-left-width: 0;
         }
         .mode-link-btn.mode-right {
             border-left-width: 0;
-            border-top-right-radius: 8px;
-            border-bottom-right-radius: 8px;
+            border-top-right-radius: 10px;
+            border-bottom-right-radius: 10px;
         }
         .mode-placeholder-title {
             font-size: 19px;
@@ -384,7 +863,9 @@ class ArchCrafter2App(Gtk.Application):
             color: rgba(255, 255, 255, 0.72);
         }
         """
-        css = css.replace("__BADGE_BG__", badge_bg).replace("__BADGE_TEXT__", badge_text)
+        css = css.replace("__BADGE_BG__", badge_bg).replace(
+            "__BADGE_TEXT__", badge_text
+        )
         provider = Gtk.CssProvider()
         provider.load_from_data(css.encode("utf-8"))
         screen = Gdk.Screen.get_default()
@@ -395,7 +876,9 @@ class ArchCrafter2App(Gtk.Application):
                 Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
             )
 
-    def _build_preview_pixbuf(self, image_path: Path, max_w: int = 1500, max_h: int = 950):
+    def _build_preview_pixbuf(
+        self, image_path: Path, max_w: int = 1500, max_h: int = 950
+    ):
         pix = GdkPixbuf.Pixbuf.new_from_file(str(image_path))
         w, h = pix.get_width(), pix.get_height()
         if w <= 0 or h <= 0:
@@ -442,7 +925,9 @@ class ArchCrafter2App(Gtk.Application):
         self._preview_window = win
         win.show_all()
 
-    def on_colorizer_preview_original_clicked(self, _button, path_str: str, parent_dialog):
+    def on_colorizer_preview_original_clicked(
+        self, _button, path_str: str, parent_dialog
+    ):
         path = Path(path_str)
         if not path.exists():
             self._show_message("Preview failed: file missing")
@@ -455,7 +940,9 @@ class ArchCrafter2App(Gtk.Application):
             img = Gtk.Image.new_from_icon_name("image-missing", Gtk.IconSize.DIALOG)
 
         parent = parent_dialog if isinstance(parent_dialog, Gtk.Window) else self.window
-        dialog = Gtk.Dialog(title=f"Preview - {path.name}", transient_for=parent, modal=True)
+        dialog = Gtk.Dialog(
+            title=f"Preview - {path.name}", transient_for=parent, modal=True
+        )
         dialog.add_button("Close", Gtk.ResponseType.CLOSE)
         dialog.set_default_size(1000, 700)
 
@@ -523,7 +1010,9 @@ class ArchCrafter2App(Gtk.Application):
 
         return False
 
-    def _build_rounded_thumbnail_widget(self, pixbuf, width: int, height: int, radius: float = 8.0):
+    def _build_rounded_thumbnail_widget(
+        self, pixbuf, width: int, height: int, radius: float = 8.0
+    ):
         area = Gtk.DrawingArea()
         area.set_size_request(width, height)
         area.connect("draw", self._draw_rounded_thumbnail, pixbuf, radius)
@@ -541,7 +1030,9 @@ class ArchCrafter2App(Gtk.Application):
 
     def _compose_wallpaper_display_name(self, entry, is_colorized: bool | None = None):
         if is_colorized is None:
-            is_colorized = self._is_colorized_path(entry.path) or str(entry.name).lower().startswith("colorized/")
+            is_colorized = self._is_colorized_path(entry.path) or str(
+                entry.name
+            ).lower().startswith("colorized/")
 
         base = self._base_wallpaper_display_name(entry)
         if is_colorized and "(colorized)" not in base.lower():
@@ -562,6 +1053,20 @@ class ArchCrafter2App(Gtk.Application):
         g = max(0, min(255, int(round(g * 255))))
         b = max(0, min(255, int(round(b * 255))))
         return f"#{r:02x}{g:02x}{b:02x}"
+
+    def _mix_hex(self, base_hex: str, target_hex: str, ratio: float):
+        ratio = max(0.0, min(1.0, float(ratio)))
+        br, bg, bb = self._hex_to_rgb(base_hex)
+        tr, tg, tb = self._hex_to_rgb(target_hex)
+        rr = br + (tr - br) * ratio
+        gg = bg + (tg - bg) * ratio
+        bb2 = bb + (tb - bb) * ratio
+        return self._rgb_to_hex(rr, gg, bb2)
+
+    def _is_light_hex(self, color_hex: str) -> bool:
+        r, g, b = self._hex_to_rgb(color_hex)
+        lum = 0.2126 * r + 0.7152 * g + 0.0722 * b
+        return lum >= 0.56
 
     def _rounded_rect(self, cr, x: float, y: float, w: float, h: float, radius: float):
         r = max(0.0, min(radius, w / 2.0, h / 2.0))
@@ -672,7 +1177,12 @@ class ArchCrafter2App(Gtk.Application):
             h, s, v = colorsys.rgb_to_hsv(r, g, b)
             for dh in (0.0, 0.03, -0.03, 0.07, -0.07, 0.12, -0.12):
                 nh = (h + dh) % 1.0
-                for sat_mul, val_mul in ((1.0, 1.0), (1.1, 1.0), (0.9, 1.1), (1.2, 0.95)):
+                for sat_mul, val_mul in (
+                    (1.0, 1.0),
+                    (1.1, 1.0),
+                    (0.9, 1.1),
+                    (1.2, 0.95),
+                ):
                     ns = max(0.18, min(1.0, s * sat_mul))
                     nv = max(0.2, min(1.0, v * val_mul))
                     rr, gg, bb = colorsys.hsv_to_rgb(nh, ns, nv)
@@ -739,12 +1249,14 @@ class ArchCrafter2App(Gtk.Application):
         if not isinstance(current, list):
             current = []
 
-        merged = [color] + [c for c in self._unique_colors(current, limit=64) if c != color]
+        merged = [color] + [
+            c for c in self._unique_colors(current, limit=64) if c != color
+        ]
         section["colorize_recent"] = merged[:36]
         self.settings.save()
 
     def _random_color(self):
-        return f"#{random.randint(0,255):02x}{random.randint(0,255):02x}{random.randint(0,255):02x}"
+        return f"#{random.randint(0, 255):02x}{random.randint(0, 255):02x}{random.randint(0, 255):02x}"
 
     def _get_colorize_strength(self) -> int:
         section = self.settings.get_section("wallpapers", default={})
@@ -763,7 +1275,9 @@ class ArchCrafter2App(Gtk.Application):
     def on_colorize_strength_changed(self, scale):
         self._set_colorize_strength(int(round(scale.get_value())))
 
-    def _create_colorized_variant(self, source_path: Path, color_hex: str, strength: int = 55):
+    def _create_colorized_variant(
+        self, source_path: Path, color_hex: str, strength: int = 55
+    ) -> tuple[Optional[Path], Optional[str]]:
         src = Path(source_path)
         if not src.exists():
             return None, "Source image not found"
@@ -779,23 +1293,58 @@ class ArchCrafter2App(Gtk.Application):
         convert = shutil.which("convert")
         cmd = None
         if magick:
-            cmd = [magick, str(src), "-fill", color_hex, "-colorize", str(strength), str(out)]
+            cmd = [
+                magick,
+                str(src),
+                "-fill",
+                color_hex,
+                "-colorize",
+                str(strength),
+                str(out),
+            ]
         elif convert:
-            cmd = [convert, str(src), "-fill", color_hex, "-colorize", str(strength), str(out)]
+            cmd = [
+                convert,
+                str(src),
+                "-fill",
+                color_hex,
+                "-colorize",
+                str(strength),
+                str(out),
+            ]
         else:
-            return None, "ImageMagick is required for colorize (magick/convert not found)"
+            return (
+                None,
+                "ImageMagick is required for colorize (magick/convert not found)",
+            )
 
         try:
-            subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.run(
+                cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+            )
             return out, None
         except Exception as exc:
             return None, f"Colorize failed: {exc}"
 
-    def _apply_colorized_and_report(self, source_path: Path, color_hex: str, dialog=None, message_prefix: str = "Applied colorized wallpaper", close_on_success: bool = False, strength: int | None = None):
-        use_strength = self._get_colorize_strength() if strength is None else max(10, min(100, int(strength)))
-        variant, err = self._create_colorized_variant(Path(source_path), color_hex, use_strength)
-        if err:
-            self._show_message(err)
+    def _apply_colorized_and_report(
+        self,
+        source_path: Path,
+        color_hex: str,
+        dialog=None,
+        message_prefix: str = "Applied colorized wallpaper",
+        close_on_success: bool = False,
+        strength: int | None = None,
+    ):
+        use_strength = (
+            self._get_colorize_strength()
+            if strength is None
+            else max(10, min(100, int(strength)))
+        )
+        variant, err = self._create_colorized_variant(
+            Path(source_path), color_hex, use_strength
+        )
+        if err or variant is None:
+            self._show_message(err or "Colorize failed")
             return False
 
         ok, message = self.wallpaper_service.apply_wallpaper(variant)
@@ -816,24 +1365,44 @@ class ArchCrafter2App(Gtk.Application):
         b = max(0, min(255, int(round(rgba.blue * 255))))
         return f"#{r:02x}{g:02x}{b:02x}"
 
-    def on_colorize_pick(self, _widget, _event, source_path: str, color_hex: str, dialog, strength_scale=None):
+    def on_colorize_pick(
+        self,
+        _widget,
+        _event,
+        source_path: str,
+        color_hex: str,
+        dialog,
+        strength_scale=None,
+    ):
         strength = None
         if strength_scale is not None:
             strength = int(round(strength_scale.get_value()))
         self._apply_colorized_and_report(
-            Path(source_path), color_hex, dialog, "Applied colorized wallpaper", strength=strength
+            Path(source_path),
+            color_hex,
+            dialog,
+            "Applied colorized wallpaper",
+            strength=strength,
         )
         return True
 
-    def on_colorize_chip_clicked(self, _button, source_path: str, color_hex: str, dialog, strength_scale=None):
+    def on_colorize_chip_clicked(
+        self, _button, source_path: str, color_hex: str, dialog, strength_scale=None
+    ):
         strength = None
         if strength_scale is not None:
             strength = int(round(strength_scale.get_value()))
         self._apply_colorized_and_report(
-            Path(source_path), color_hex, dialog, "Applied colorized wallpaper", strength=strength
+            Path(source_path),
+            color_hex,
+            dialog,
+            "Applied colorized wallpaper",
+            strength=strength,
         )
 
-    def _build_colorize_chip_flow(self, colors, source_path: str, dialog, strength_scale=None):
+    def _build_colorize_chip_flow(
+        self, colors, source_path: str, dialog, strength_scale=None
+    ):
         flow = Gtk.FlowBox()
         flow.set_selection_mode(Gtk.SelectionMode.NONE)
         flow.set_max_children_per_line(10)
@@ -852,7 +1421,14 @@ class ArchCrafter2App(Gtk.Application):
             swatch_btn.set_relief(Gtk.ReliefStyle.NONE)
             swatch_btn.get_style_context().add_class("colorize-chip-button")
             swatch_btn.set_tooltip_text(f"Apply {color_hex}")
-            swatch_btn.connect("clicked", self.on_colorize_chip_clicked, source_path, color_hex, dialog, strength_scale)
+            swatch_btn.connect(
+                "clicked",
+                self.on_colorize_chip_clicked,
+                source_path,
+                color_hex,
+                dialog,
+                strength_scale,
+            )
             swatch_btn.add(sw)
 
             child.add(swatch_btn)
@@ -860,13 +1436,19 @@ class ArchCrafter2App(Gtk.Application):
 
         return flow
 
-    def on_random_colorize_clicked(self, _button, source_path: str, dialog, strength_scale=None):
+    def on_random_colorize_clicked(
+        self, _button, source_path: str, dialog, strength_scale=None
+    ):
         color_hex = self._random_color()
         strength = None
         if strength_scale is not None:
             strength = int(round(strength_scale.get_value()))
         self._apply_colorized_and_report(
-            Path(source_path), color_hex, dialog, "Applied random colorized wallpaper", strength=strength
+            Path(source_path),
+            color_hex,
+            dialog,
+            "Applied random colorized wallpaper",
+            strength=strength,
         )
 
     def on_custom_color_changed(self, color_button, hex_entry):
@@ -881,14 +1463,26 @@ class ArchCrafter2App(Gtk.Application):
         clipboard.set_text(color, -1)
         self._show_message(f"Copied {color}")
 
-    def on_apply_custom_color_clicked(self, _button, source_path: str, color_button, hex_entry, dialog, strength_scale=None):
+    def on_apply_custom_color_clicked(
+        self,
+        _button,
+        source_path: str,
+        color_button,
+        hex_entry,
+        dialog,
+        strength_scale=None,
+    ):
         color_hex = self._rgba_to_hex(color_button.get_rgba())
         hex_entry.set_text(color_hex.upper())
         strength = None
         if strength_scale is not None:
             strength = int(round(strength_scale.get_value()))
         self._apply_colorized_and_report(
-            Path(source_path), color_hex, dialog, "Applied custom colorized wallpaper", strength=strength
+            Path(source_path),
+            color_hex,
+            dialog,
+            "Applied custom colorized wallpaper",
+            strength=strength,
         )
 
     def on_wallpaper_colorize_clicked(self, _button, path_str: str):
@@ -900,7 +1494,9 @@ class ArchCrafter2App(Gtk.Application):
         palette = self._extract_palette(src)
         choices = self._build_similar_colors(palette)
 
-        dialog = Gtk.Dialog(title=f"Colorize - {src.name}", transient_for=self.window, modal=True)
+        dialog = Gtk.Dialog(
+            title=f"Colorize - {src.name}", transient_for=self.window, modal=True
+        )
         dialog.add_button("Close", Gtk.ResponseType.CLOSE)
         dialog.set_default_size(760, 460)
 
@@ -911,14 +1507,18 @@ class ArchCrafter2App(Gtk.Application):
         area.set_margin_start(12)
         area.set_margin_end(12)
 
-        info = Gtk.Label(label="Pick a swatch or use Custom Color wheel to colorize and apply")
+        info = Gtk.Label(
+            label="Pick a swatch or use Custom Color wheel to colorize and apply"
+        )
         info.set_xalign(0.0)
         area.pack_start(info, False, False, 0)
 
         strength_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         strength_label = Gtk.Label(label="Strength")
         strength_label.set_xalign(0.0)
-        strength_scale = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 10, 100, 1)
+        strength_scale = Gtk.Scale.new_with_range(
+            Gtk.Orientation.HORIZONTAL, 10, 100, 1
+        )
         strength_scale.set_hexpand(True)
         strength_scale.set_digits(0)
         strength_scale.set_draw_value(True)
@@ -946,7 +1546,11 @@ class ArchCrafter2App(Gtk.Application):
                 scroller.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
                 scroller.set_min_content_height(210)
                 scroller.set_shadow_type(Gtk.ShadowType.NONE)
-                scroller.add(self._build_colorize_chip_flow(colors, str(src), dialog, strength_scale))
+                scroller.add(
+                    self._build_colorize_chip_flow(
+                        colors, str(src), dialog, strength_scale
+                    )
+                )
                 page.pack_start(scroller, True, True, 0)
             else:
                 empty = Gtk.Label(label="No swatches yet")
@@ -983,14 +1587,26 @@ class ArchCrafter2App(Gtk.Application):
         color_button.connect("color-set", self.on_custom_color_changed, custom_hex)
 
         apply_custom_btn = Gtk.Button(label="Apply Custom")
-        apply_custom_btn.set_image(Gtk.Image.new_from_icon_name("format-fill-color-symbolic", Gtk.IconSize.BUTTON))
+        apply_custom_btn.set_image(
+            Gtk.Image.new_from_icon_name(
+                "format-fill-color-symbolic", Gtk.IconSize.BUTTON
+            )
+        )
         apply_custom_btn.set_always_show_image(True)
         apply_custom_btn.connect(
-            "clicked", self.on_apply_custom_color_clicked, str(src), color_button, custom_hex, dialog, strength_scale
+            "clicked",
+            self.on_apply_custom_color_clicked,
+            str(src),
+            color_button,
+            custom_hex,
+            dialog,
+            strength_scale,
         )
 
         copy_hex_btn = Gtk.Button(label="Copy Hex")
-        copy_hex_btn.set_image(Gtk.Image.new_from_icon_name("edit-copy-symbolic", Gtk.IconSize.BUTTON))
+        copy_hex_btn.set_image(
+            Gtk.Image.new_from_icon_name("edit-copy-symbolic", Gtk.IconSize.BUTTON)
+        )
         copy_hex_btn.set_always_show_image(True)
         copy_hex_btn.connect("clicked", self.on_copy_custom_hex_clicked, custom_hex)
 
@@ -1003,11 +1619,17 @@ class ArchCrafter2App(Gtk.Application):
 
         actions = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         random_btn = Gtk.Button(label="Randomize")
-        random_btn.set_image(Gtk.Image.new_from_icon_name("view-refresh-symbolic", Gtk.IconSize.BUTTON))
+        random_btn.set_image(
+            Gtk.Image.new_from_icon_name("view-refresh-symbolic", Gtk.IconSize.BUTTON)
+        )
         random_btn.set_always_show_image(True)
-        random_btn.connect("clicked", self.on_random_colorize_clicked, str(src), dialog, strength_scale)
+        random_btn.connect(
+            "clicked", self.on_random_colorize_clicked, str(src), dialog, strength_scale
+        )
         preview_btn = Gtk.Button(label="Preview Original")
-        preview_btn.connect("clicked", self.on_colorizer_preview_original_clicked, str(src), dialog)
+        preview_btn.connect(
+            "clicked", self.on_colorizer_preview_original_clicked, str(src), dialog
+        )
         actions.pack_start(random_btn, False, False, 0)
         actions.pack_start(preview_btn, False, False, 0)
         area.pack_start(actions, False, False, 0)
@@ -1063,6 +1685,7 @@ class ArchCrafter2App(Gtk.Application):
         if size == self.thumb_width:
             return
         self.thumb_width = size
+        self._update_wallpaper_grid_columns()
         self.wallpaper_service.set_thumb_size(size)
         self._queue_thumb_reload()
 
@@ -1094,7 +1717,15 @@ class ArchCrafter2App(Gtk.Application):
             dialog.run()
             dialog.destroy()
 
-    def on_wallpaper_name_activate(self, _widget, event, path_str: str, label_widget=None, is_colorized: bool = False, fallback_name: str | None = None):
+    def on_wallpaper_name_activate(
+        self,
+        _widget,
+        event,
+        path_str: str,
+        label_widget=None,
+        is_colorized: bool = False,
+        fallback_name: str | None = None,
+    ):
         if event is None:
             return False
         if getattr(event, "button", 0) != 1:
@@ -1115,14 +1746,23 @@ class ArchCrafter2App(Gtk.Application):
         )
         return True
 
-    def on_wallpaper_edit_name_clicked(self, _button, path_str: str, label_widget=None, is_colorized: bool = False, fallback_name: str | None = None):
+    def on_wallpaper_edit_name_clicked(
+        self,
+        _button,
+        path_str: str,
+        label_widget=None,
+        is_colorized: bool = False,
+        fallback_name: str | None = None,
+    ):
         path = Path(path_str)
         if fallback_name is None or not str(fallback_name).strip():
             fallback_name = path.name
 
         current = self.wallpaper_service.get_display_name(path, fallback_name)
 
-        dialog = Gtk.Dialog(title=f"Edit Name - {path.name}", transient_for=self.window, modal=True)
+        dialog = Gtk.Dialog(
+            title=f"Edit Name - {path.name}", transient_for=self.window, modal=True
+        )
         dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
         dialog.add_button("Reset", 1)
         save_btn = dialog.add_button("Save", Gtk.ResponseType.OK)
@@ -1136,7 +1776,9 @@ class ArchCrafter2App(Gtk.Application):
         area.set_margin_start(10)
         area.set_margin_end(10)
 
-        hint = Gtk.Label(label="Edit display name only (original filename stays unchanged).")
+        hint = Gtk.Label(
+            label="Edit display name only (original filename stays unchanged)."
+        )
         hint.set_xalign(0.0)
         area.pack_start(hint, False, False, 0)
 
@@ -1196,10 +1838,8 @@ class ArchCrafter2App(Gtk.Application):
         if response != Gtk.ResponseType.OK:
             return
 
-        try:
-            path.unlink()
-        except Exception as exc:
-            message = f"Delete failed: {exc}"
+        ok, message = self.wallpaper_service.delete_wallpaper(path)
+        if not ok:
             self._show_message(message)
             err = Gtk.MessageDialog(
                 transient_for=self.window,
@@ -1213,7 +1853,7 @@ class ArchCrafter2App(Gtk.Application):
             return
 
         self.wallpaper_service.clear_display_name(path)
-        self._show_message(f"Deleted: {path.name}")
+        self._show_message(message)
 
         if flow_child is not None and self.wallpaper_flowbox is not None:
             try:
@@ -1235,38 +1875,141 @@ class ArchCrafter2App(Gtk.Application):
         return False
 
     def init_gtk_themes_page(self):
+        assert self.builder is not None
         self.flowbox_gtk_themes = self.builder.get_object("flowbox_gtk_themes")
+        self.entry_gtk_themes_search = self.builder.get_object(
+            "entry_gtk_themes_search"
+        )
+        self.combo_gtk_themes_filter = self.builder.get_object(
+            "combo_gtk_themes_filter"
+        )
+        self.gtk_theme_preview_container = self.builder.get_object(
+            "gtk_theme_preview_container"
+        )
+
+        if self.entry_gtk_themes_search:
+            self.entry_gtk_themes_search.connect(
+                "changed", lambda w: self.reload_gtk_themes()
+            )
+        if self.combo_gtk_themes_filter:
+            self.combo_gtk_themes_filter.connect(
+                "changed", lambda w: self.reload_gtk_themes()
+            )
+
+        if self.gtk_theme_preview_container:
+            self._build_gtk_preview_mockup()
+            # Initial preview of current theme
+            current = self.gtk_theme_service.get_current_theme()
+            if current:
+                self._update_gtk_theme_preview(current)
+
         self.reload_gtk_themes()
 
     def reload_gtk_themes(self):
         if self.flowbox_gtk_themes is None:
             return
         self._clear_widget_children(self.flowbox_gtk_themes)
-        thread = threading.Thread(target=self._reload_gtk_themes_thread, daemon=True)
+        self._gtk_theme_reload_id += 1
+        reload_id = self._gtk_theme_reload_id
+
+        query = ""
+        if self.entry_gtk_themes_search:
+            query = self.entry_gtk_themes_search.get_text().lower().strip()
+
+        filter_type = "all"
+        if self.combo_gtk_themes_filter:
+            idx = self.combo_gtk_themes_filter.get_active()
+            if idx == 1:
+                filter_type = "light"
+            elif idx == 2:
+                filter_type = "dark"
+
+        thread = threading.Thread(
+            target=self._reload_gtk_themes_thread,
+            args=(query, filter_type, reload_id),
+            daemon=True,
+        )
         thread.start()
 
-    def _reload_gtk_themes_thread(self):
+    def _reload_gtk_themes_thread(self, query, filter_type, reload_id):
         themes = self.gtk_theme_service.list_themes()
         current = self.gtk_theme_service.get_current_theme()
+        if reload_id != self._gtk_theme_reload_id:
+            return
+        self._gtk_theme_meta_by_name = {t.name: t for t in themes}
+
+        # Filtering
+        if query:
+            themes = [t for t in themes if query in t.name.lower()]
+        if filter_type != "all":
+            themes = [t for t in themes if t.type == filter_type]
 
         def add_theme_card(theme, is_current):
+            if (
+                reload_id != self._gtk_theme_reload_id
+                or self.flowbox_gtk_themes is None
+            ):
+                return False
             card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
             card.get_style_context().add_class("theme-card")
             if is_current:
                 card.get_style_context().add_class("theme-card-active")
 
+            # Top row: title + badge
+            top_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
             title = Gtk.Label(label=theme.name)
             title.get_style_context().add_class("theme-title")
-            title.set_xalign(0.5)
-            card.pack_start(title, True, True, 0)
+            title.set_xalign(0.0)
+            title.set_ellipsize(Pango.EllipsizeMode.END)
+            top_row.pack_start(title, True, True, 0)
+
+            badge = Gtk.Label(label=theme.type.upper())
+            badge.get_style_context().add_class("theme-type-badge")
+            top_row.pack_start(badge, False, False, 0)
+            card.pack_start(top_row, False, False, 0)
+
+            # Color row: 3 chips
+            color_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+            for ckey in ["bg", "fg", "accent"]:
+                chip = Gtk.DrawingArea()
+                chip.set_size_request(14, 14)
+                chip.get_style_context().add_class("theme-chip")
+                chip.connect(
+                    "draw", self._draw_swatch, theme.colors.get(ckey, "#5ba1ea")
+                )
+                color_row.pack_start(chip, False, False, 0)
+
+            card.pack_start(color_row, False, False, 0)
+
+            actions = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+
+            preview_btn = Gtk.Button(label="Preview")
+            preview_btn.get_style_context().add_class("theme-apply-button")
+            preview_btn.connect(
+                "clicked", self.on_gtk_theme_preview_clicked, theme.name
+            )
+            actions.pack_start(preview_btn, True, True, 0)
 
             apply_btn = Gtk.Button(label="Apply")
             apply_btn.get_style_context().add_class("suggested-action")
+            apply_btn.get_style_context().add_class("theme-apply-button")
             apply_btn.connect("clicked", self.on_gtk_theme_apply_clicked, theme.name)
-            card.pack_start(apply_btn, False, False, 0)
+            actions.pack_start(apply_btn, True, True, 0)
+
+            card.pack_start(actions, False, False, 0)
+
+            event_box = Gtk.EventBox()
+            event_box.add(card)
+            event_box.add_events(Gdk.EventMask.ENTER_NOTIFY_MASK)
+
+            def _on_enter(_w, _e, theme_name):
+                self._update_gtk_theme_preview(theme_name)
+                return False
+
+            event_box.connect("enter-notify-event", _on_enter, theme.name)
 
             child = Gtk.FlowBoxChild()
-            child.add(card)
+            child.add(event_box)
             self.flowbox_gtk_themes.add(child)
             child.show_all()
             return False
@@ -1274,11 +2017,141 @@ class ArchCrafter2App(Gtk.Application):
         for theme in themes:
             GLib.idle_add(add_theme_card, theme, theme.name == current)
 
+    def _build_gtk_preview_mockup(self):
+        container = self.gtk_theme_preview_container
+        if container is None:
+            return
+
+        mockup = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=15)
+        mockup.set_margin_top(15)
+        mockup.set_margin_bottom(15)
+        mockup.set_margin_start(15)
+        mockup.set_margin_end(15)
+
+        # Tabs
+        notebook = Gtk.Notebook()
+        page1 = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        page1.set_margin_top(10)
+        page1.set_margin_bottom(10)
+        page1.set_margin_start(10)
+        page1.set_margin_end(10)
+
+        # Inner widgets
+        row1 = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        row1.pack_start(Gtk.CheckButton(label="Check Button"), False, False, 0)
+        row1.pack_start(Gtk.RadioButton(label="Radio Button"), False, False, 0)
+        page1.add(row1)
+
+        row2 = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        row2.pack_start(Gtk.Entry(text="Text entry..."), True, True, 0)
+        page1.add(row2)
+
+        progress = Gtk.ProgressBar()
+        progress.set_fraction(0.65)
+        page1.add(progress)
+
+        notebook.append_page(page1, Gtk.Label(label="Demo Widgets"))
+        notebook.append_page(
+            Gtk.Label(label="Tab 2 Content"), Gtk.Label(label="Page 2")
+        )
+
+        mockup.pack_start(notebook, True, True, 0)
+
+        # Buttons at bottom
+        btn_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        btn_row.set_halign(Gtk.Align.END)
+        btn_row.pack_start(Gtk.Button(label="Cancel"), False, False, 0)
+        btn_row.pack_start(Gtk.Button(label="OK"), False, False, 0)
+        mockup.pack_start(btn_row, False, False, 0)
+
+        container.add(mockup)
+        mockup.show_all()
+
+    def _update_gtk_theme_preview(self, theme_name):
+        container = self.gtk_theme_preview_container
+        if container is None:
+            return
+
+        theme = self._gtk_theme_meta_by_name.get(theme_name)
+        if theme is None:
+            themes = self.gtk_theme_service.list_themes()
+            self._gtk_theme_meta_by_name = {t.name: t for t in themes}
+            theme = self._gtk_theme_meta_by_name.get(theme_name)
+        if theme is None:
+            return
+
+        colors = theme.colors if isinstance(theme.colors, dict) else {}
+        bg = str(colors.get("bg", "#2f343f"))
+        fg = str(colors.get("fg", "#e6eaf0"))
+        accent = str(colors.get("accent", "#5ba1ea"))
+
+        light_theme = self._is_light_hex(bg)
+        surface = self._mix_hex(bg, "#000000", 0.06 if light_theme else 0.18)
+        border = (
+            self._mix_hex(bg, "#000000", 0.20)
+            if light_theme
+            else self._mix_hex(bg, "#ffffff", 0.20)
+        )
+        tab_active = self._mix_hex(accent, "#ffffff", 0.18 if light_theme else 0.10)
+        button_text = "#111111" if self._is_light_hex(accent) else "#ffffff"
+
+        css = f"""
+        #gtk_theme_preview_container {{
+            background-color: {bg};
+            border: 1px solid {border};
+            border-radius: 8px;
+        }}
+        #gtk_theme_preview_container * {{
+            color: {fg};
+        }}
+        #gtk_theme_preview_container entry {{
+            background-color: {surface};
+            border: 1px solid {border};
+            color: {fg};
+        }}
+        #gtk_theme_preview_container notebook {{
+            background-color: {surface};
+            border: 1px solid {border};
+        }}
+        #gtk_theme_preview_container notebook header tab:checked {{
+            background-color: {tab_active};
+        }}
+        #gtk_theme_preview_container button {{
+            background-image: none;
+            background-color: {accent};
+            color: {button_text};
+            border: 1px solid {border};
+        }}
+        #gtk_theme_preview_container progressbar trough {{
+            background-color: {surface};
+        }}
+        #gtk_theme_preview_container progressbar progress {{
+            background-color: {accent};
+        }}
+        """
+
+        try:
+            self.gtk_theme_preview_provider.load_from_data(css.encode("utf-8"))
+            ctx = container.get_style_context()
+            if self._gtk_theme_preview_provider_attached:
+                ctx.remove_provider(self.gtk_theme_preview_provider)
+            ctx.add_provider(
+                self.gtk_theme_preview_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+            )
+            self._gtk_theme_preview_provider_attached = True
+        except Exception as e:
+            print(f"Failed to build theme preview CSS: {e}")
+
+    def on_gtk_theme_preview_clicked(self, _button, theme_name):
+        self._update_gtk_theme_preview(theme_name)
+        self._show_message(f"Previewing GTK theme: {theme_name}")
+
     def on_gtk_theme_apply_clicked(self, _button, theme_name):
         ok, message = self.gtk_theme_service.apply_theme(theme_name)
         self._show_message(message)
         if ok:
             self.reload_gtk_themes()
+            self._update_gtk_theme_preview(theme_name)
         else:
             dialog = Gtk.MessageDialog(
                 transient_for=self.window,
@@ -1291,6 +2164,7 @@ class ArchCrafter2App(Gtk.Application):
             dialog.destroy()
 
     def init_window_themes_page(self):
+        assert self.builder is not None
         self.flowbox_window_themes = self.builder.get_object("flowbox_window_themes")
         self.reload_window_themes()
 
@@ -1318,6 +2192,7 @@ class ArchCrafter2App(Gtk.Application):
 
             apply_btn = Gtk.Button(label="Apply")
             apply_btn.get_style_context().add_class("suggested-action")
+            apply_btn.get_style_context().add_class("theme-apply-button")
             apply_btn.connect("clicked", self.on_window_theme_apply_clicked, theme.name)
             card.pack_start(apply_btn, False, False, 0)
 
@@ -1348,19 +2223,33 @@ class ArchCrafter2App(Gtk.Application):
             dialog.destroy()
 
     def init_wallpaper_page(self):
+        assert self.builder is not None
         self.switch_wallpaper_system_source = self.builder.get_object(
             "switch_wallpaper_system_source"
         )
-        self.combo_wallpaper_fill_mode = self.builder.get_object("combo_wallpaper_fill_mode")
+        self.combo_wallpaper_fill_mode = self.builder.get_object(
+            "combo_wallpaper_fill_mode"
+        )
         self.combo_wallpaper_sort = self.builder.get_object("combo_wallpaper_sort")
         self.entry_wallpaper_search = self.builder.get_object("entry_wallpaper_search")
-        self.chooser_wallpaper_folder = self.builder.get_object("chooser_wallpaper_folder")
+        self.chooser_wallpaper_folder = self.builder.get_object(
+            "chooser_wallpaper_folder"
+        )
+        self.button_top_settings = self.builder.get_object("button_top_settings")
         self.label_wallpaper_folder = self.builder.get_object("label_wallpaper_folder")
         self.wallpaper_view_stack = self.builder.get_object("wallpaper_view_stack")
-        self.wallpaper_view_switcher = self.builder.get_object("wallpaper_view_switcher")
+        self.wallpaper_view_switcher = self.builder.get_object(
+            "wallpaper_view_switcher"
+        )
+        self.wallpaper_grid_scroller = self.builder.get_object(
+            "wallpaper_grid_scroller"
+        )
         self.wallpaper_flowbox = self.builder.get_object("wallpaper_flowbox")
         self.label_wallpaper_count = self.builder.get_object("label_wallpaper_count")
-        self.scale_wallpaper_thumb_size = self.builder.get_object("scale_wallpaper_thumb_size")
+        self.scale_wallpaper_thumb_size = self.builder.get_object(
+            "scale_wallpaper_thumb_size"
+        )
+        self._ensure_wallpaper_bottom_bar()
 
         if self.switch_wallpaper_system_source is not None:
             self.switch_wallpaper_system_source.connect(
@@ -1373,11 +2262,28 @@ class ArchCrafter2App(Gtk.Application):
         if self.combo_wallpaper_sort is not None:
             self.combo_wallpaper_sort.connect("changed", self.on_wallpaper_sort_changed)
         if self.entry_wallpaper_search is not None:
-            self.entry_wallpaper_search.connect("changed", self.on_wallpaper_search_changed)
+            self.entry_wallpaper_search.connect(
+                "changed", self.on_wallpaper_search_changed
+            )
         if self.chooser_wallpaper_folder is not None:
-            self.chooser_wallpaper_folder.connect("file-set", self.on_wallpaper_folder_selected)
+            self.chooser_wallpaper_folder.connect(
+                "file-set", self.on_wallpaper_folder_selected
+            )
+        if self.button_top_settings is not None:
+            self.button_top_settings.connect("clicked", self.on_top_settings_clicked)
         if self.scale_wallpaper_thumb_size is not None:
-            self.scale_wallpaper_thumb_size.connect("value-changed", self.on_wallpaper_thumb_size_changed)
+            self.scale_wallpaper_thumb_size.connect(
+                "value-changed", self.on_wallpaper_thumb_size_changed
+            )
+        if self.wallpaper_grid_scroller is not None:
+            self.wallpaper_grid_scroller.set_policy(
+                Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC
+            )
+            if hasattr(self.wallpaper_grid_scroller, "set_propagate_natural_width"):
+                self.wallpaper_grid_scroller.set_propagate_natural_width(False)
+            self.wallpaper_grid_scroller.connect(
+                "size-allocate", self.on_wallpaper_grid_scroller_size_allocate
+            )
 
         if self.wallpaper_flowbox is not None:
             self.wallpaper_flowbox.set_column_spacing(10)
@@ -1386,6 +2292,9 @@ class ArchCrafter2App(Gtk.Application):
             self.wallpaper_flowbox.set_margin_bottom(10)
             self.wallpaper_flowbox.set_margin_start(10)
             self.wallpaper_flowbox.set_margin_end(10)
+            self.wallpaper_flowbox.set_min_children_per_line(1)
+            self.wallpaper_flowbox.set_max_children_per_line(3)
+            self._update_wallpaper_grid_columns()
 
         # Grid-only mode: hide switcher and pin stack to grid.
         if self.wallpaper_view_switcher is not None:
@@ -1426,6 +2335,32 @@ class ArchCrafter2App(Gtk.Application):
                 self.scale_wallpaper_thumb_size.set_value(float(self.thumb_width))
         finally:
             self._loading_wallpaper_state = False
+
+    def on_wallpaper_grid_scroller_size_allocate(self, _widget, allocation):
+        self._update_wallpaper_grid_columns(int(allocation.width))
+
+    def _update_wallpaper_grid_columns(self, viewport_width: int | None = None):
+        if self.wallpaper_flowbox is None:
+            return
+
+        if viewport_width is None and self.wallpaper_grid_scroller is not None:
+            viewport_width = int(self.wallpaper_grid_scroller.get_allocated_width())
+
+        if viewport_width is None or viewport_width <= 0:
+            return
+
+        col_spacing = int(self.wallpaper_flowbox.get_column_spacing())
+        side_margins = int(
+            self.wallpaper_flowbox.get_margin_start()
+            + self.wallpaper_flowbox.get_margin_end()
+        )
+        available = max(1, viewport_width - side_margins)
+
+        # Keep card footers fully visible in narrower layouts.
+        card_width = max(230, min(420, int(self.thumb_width)))
+        columns = int((available + col_spacing) // max(1, card_width + col_spacing))
+        columns = max(1, min(3, columns))
+        self.wallpaper_flowbox.set_max_children_per_line(columns)
 
     def _sorted_filtered_wallpapers(self):
         entries = self.wallpaper_service.list_wallpapers()
@@ -1504,11 +2439,15 @@ class ArchCrafter2App(Gtk.Application):
                     return False
 
                 flow_child = Gtk.FlowBoxChild()
-                
+
                 card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-                
-                card_img = self._build_rounded_thumbnail_widget(pb, thumb_w, thumb_h, 9.0)
-                is_colorized = self._is_colorized_path(e.path) or str(e.name).lower().startswith("colorized/")
+
+                card_img = self._build_rounded_thumbnail_widget(
+                    pb, thumb_w, thumb_h, 9.0
+                )
+                is_colorized = self._is_colorized_path(e.path) or str(
+                    e.name
+                ).lower().startswith("colorized/")
 
                 media_widget = card_img
                 if is_colorized:
@@ -1561,42 +2500,54 @@ class ArchCrafter2App(Gtk.Application):
                 )
                 name_click.add(card_name)
 
-                swatches = self._build_swatch_row(p, swatch_size=20, spacing=3)
-
-                preview_button = Gtk.Button.new_from_icon_name(
-                    "view-preview-symbolic", Gtk.IconSize.BUTTON
+                swatch_size = 20 if thumb_w >= 240 else 18 if thumb_w >= 210 else 16
+                actions_row_min = (4 * 28) + (3 * 4)
+                swatch_slot = swatch_size + 3
+                swatch_budget = max(0, thumb_w - actions_row_min - 8)
+                max_swatches = max(2, swatch_budget // max(1, swatch_slot))
+                swatches = self._build_swatch_row(
+                    p[:max_swatches], swatch_size=swatch_size, spacing=3
                 )
-                preview_button.set_tooltip_text("Preview")
-                preview_button.set_relief(Gtk.ReliefStyle.NONE)
-                preview_button.get_style_context().add_class("overlay-action-button")
+
+                def make_action_icon_button(icon_name: str, tooltip: str):
+                    btn = Gtk.Button()
+                    img = Gtk.Image.new_from_icon_name(icon_name, Gtk.IconSize.MENU)
+                    img.set_pixel_size(15)
+                    img.set_halign(Gtk.Align.CENTER)
+                    img.set_valign(Gtk.Align.CENTER)
+                    btn.set_image(img)
+                    btn.set_always_show_image(True)
+                    btn.set_tooltip_text(tooltip)
+                    btn.set_relief(Gtk.ReliefStyle.NONE)
+                    btn.get_style_context().add_class("overlay-action-button")
+                    return btn
+
+                preview_button = make_action_icon_button(
+                    "view-preview-symbolic", "Preview"
+                )
                 preview_button.connect(
                     "clicked", self.on_wallpaper_preview_clicked, str(e.path)
                 )
 
-                colorize_button = Gtk.Button.new_from_icon_name(
-                    "format-fill-color-symbolic", Gtk.IconSize.BUTTON
+                colorize_button = make_action_icon_button(
+                    "format-fill-color-symbolic", "Colorize"
                 )
-                colorize_button.set_tooltip_text("Colorize")
-                colorize_button.set_relief(Gtk.ReliefStyle.NONE)
-                colorize_button.get_style_context().add_class("overlay-action-button")
                 colorize_button.connect(
                     "clicked", self.on_wallpaper_colorize_clicked, str(e.path)
                 )
-                apply_button = Gtk.Button.new_from_icon_name(
-                    "object-select-symbolic", Gtk.IconSize.BUTTON
+                apply_button = make_action_icon_button(
+                    "object-select-symbolic", "Apply wallpaper"
                 )
-                apply_button.set_tooltip_text("Apply wallpaper")
-                apply_button.set_relief(Gtk.ReliefStyle.NONE)
-                apply_button.get_style_context().add_class("overlay-action-button")
-                apply_button.connect("clicked", self.on_wallpaper_apply_clicked, str(e.path))
+                apply_button.connect(
+                    "clicked", self.on_wallpaper_apply_clicked, str(e.path)
+                )
 
-                delete_button = Gtk.Button.new_from_icon_name(
-                    "edit-delete-symbolic", Gtk.IconSize.BUTTON
+                delete_button = make_action_icon_button(
+                    "edit-delete-symbolic", "Delete wallpaper"
                 )
-                delete_button.set_tooltip_text("Delete wallpaper")
-                delete_button.set_relief(Gtk.ReliefStyle.NONE)
-                delete_button.get_style_context().add_class("overlay-action-button")
-                delete_button.connect("clicked", self.on_wallpaper_delete_clicked, str(e.path), flow_child)
+                delete_button.connect(
+                    "clicked", self.on_wallpaper_delete_clicked, str(e.path), flow_child
+                )
 
                 actions_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
                 actions_row.pack_start(preview_button, False, False, 0)
@@ -1615,7 +2566,7 @@ class ArchCrafter2App(Gtk.Application):
                 card.pack_start(media_click, False, False, 0)
                 card.pack_start(name_click, False, False, 0)
                 card.pack_start(footer_row, False, False, 0)
-                
+
                 flow_child.add(card)
                 self.wallpaper_flowbox.add(flow_child)
                 flow_child.show_all()
@@ -1629,6 +2580,7 @@ class ArchCrafter2App(Gtk.Application):
             return
 
         self.builder = Gtk.Builder()
+        assert self.builder is not None
         loaded_files = []
 
         for candidate in (PRIMARY_GLADE, BACKUP_GLADE):
@@ -1646,7 +2598,10 @@ class ArchCrafter2App(Gtk.Application):
 
         if isinstance(self.window, Gtk.ApplicationWindow):
             self.window.set_application(self)
+        self.window.set_resizable(True)
+        self._register_icon_search_paths()
 
+        assert self.builder is not None
         self.sidebar_list = self.builder.get_object("sidebar_list")
         self.content_stack = self.builder.get_object("content_stack")
 

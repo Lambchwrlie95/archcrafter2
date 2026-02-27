@@ -1,7 +1,7 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <!-- Generated with glade 3.40.0 -->
 <interface>
-  <requires lib="gtk+" version="3.24"/>
+  <requires lib="gtk+" version="3.24" />
 
   <object class="GtkAdjustment" id="adj_wallpaper_thumb_size">
     <property name="lower">180</property>
@@ -66,15 +66,20 @@
                               <object class="GtkImage" id="icon_wallpapers">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="icon_name">image-x-generic-symbolic</property>
-                                <property name="pixel_size">20</property>
+                                <property
+                                                                    name="icon_name"
+                                                                >ac-wallpapers-symbolic</property>
+                                <property name="pixel_size">22</property>
                               </object>
                             </child>
                             <child>
                               <object class="GtkLabel" id="label_wallpapers">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="label" translatable="yes">Wallpapers</property>
+                                <property
+                                                                    name="label"
+                                                                    translatable="yes"
+                                                                >Wallpapers</property>
                                 <property name="xalign">0</property>
                               </object>
                             </child>
@@ -101,15 +106,20 @@
                               <object class="GtkImage" id="icon_gtk_themes">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="icon_name">color-select-symbolic</property>
-                                <property name="pixel_size">20</property>
+                                <property
+                                                                    name="icon_name"
+                                                                >ac-gtk-themes-symbolic</property>
+                                <property name="pixel_size">22</property>
                               </object>
                             </child>
                             <child>
                               <object class="GtkLabel" id="label_gtk_themes">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="label" translatable="yes">GTK Themes</property>
+                                <property
+                                                                    name="label"
+                                                                    translatable="yes"
+                                                                >GTK Themes</property>
                                 <property name="xalign">0</property>
                               </object>
                             </child>
@@ -136,50 +146,20 @@
                               <object class="GtkImage" id="icon_window_themes">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="icon_name">window-new-symbolic</property>
-                                <property name="pixel_size">20</property>
+                                <property
+                                                                    name="icon_name"
+                                                                >ac-window-themes-symbolic</property>
+                                <property name="pixel_size">22</property>
                               </object>
                             </child>
                             <child>
                               <object class="GtkLabel" id="label_window_themes">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="label" translatable="yes">Window Themes</property>
-                                <property name="xalign">0</property>
-                              </object>
-                            </child>
-                          </object>
-                        </child>
-                      </object>
-                    </child>
-
-                    <child>
-                      <object class="GtkListBoxRow" id="row_openbox">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <child>
-                          <object class="GtkBox" id="box_openbox">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="orientation">horizontal</property>
-                            <property name="spacing">12</property>
-                            <property name="margin_top">10</property>
-                            <property name="margin_bottom">10</property>
-                            <property name="margin_start">14</property>
-                            <property name="margin_end">14</property>
-                            <child>
-                              <object class="GtkImage" id="icon_openbox">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="icon_name">preferences-system-symbolic</property>
-                                <property name="pixel_size">20</property>
-                              </object>
-                            </child>
-                            <child>
-                              <object class="GtkLabel" id="label_openbox">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="label" translatable="yes">Openbox Config</property>
+                                <property
+                                                                    name="label"
+                                                                    translatable="yes"
+                                                                >Window Themes</property>
                                 <property name="xalign">0</property>
                               </object>
                             </child>
@@ -206,50 +186,20 @@
                               <object class="GtkImage" id="icon_panels">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="icon_name">view-list-symbolic</property>
-                                <property name="pixel_size">20</property>
+                                <property
+                                                                    name="icon_name"
+                                                                >multimedia-volume-control-symbolic</property>
+                                <property name="pixel_size">26</property>
                               </object>
                             </child>
                             <child>
                               <object class="GtkLabel" id="label_panels">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="label" translatable="yes">Panels</property>
-                                <property name="xalign">0</property>
-                              </object>
-                            </child>
-                          </object>
-                        </child>
-                      </object>
-                    </child>
-
-                    <child>
-                      <object class="GtkListBoxRow" id="row_rofi">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <child>
-                          <object class="GtkBox" id="box_rofi">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="orientation">horizontal</property>
-                            <property name="spacing">12</property>
-                            <property name="margin_top">10</property>
-                            <property name="margin_bottom">10</property>
-                            <property name="margin_start">14</property>
-                            <property name="margin_end">14</property>
-                            <child>
-                              <object class="GtkImage" id="icon_rofi">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="icon_name">edit-find-symbolic</property>
-                                <property name="pixel_size">20</property>
-                              </object>
-                            </child>
-                            <child>
-                              <object class="GtkLabel" id="label_rofi">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="label" translatable="yes">Rofi</property>
+                                <property
+                                                                    name="label"
+                                                                    translatable="yes"
+                                                                >Bar</property>
                                 <property name="xalign">0</property>
                               </object>
                             </child>
@@ -276,15 +226,20 @@
                               <object class="GtkImage" id="icon_jgmenu">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="icon_name">open-menu-symbolic</property>
-                                <property name="pixel_size">20</property>
+                                <property
+                                                                    name="icon_name"
+                                                                >ac-jgmenu-symbolic</property>
+                                <property name="pixel_size">22</property>
                               </object>
                             </child>
                             <child>
                               <object class="GtkLabel" id="label_jgmenu">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="label" translatable="yes">Menu</property>
+                                <property
+                                                                    name="label"
+                                                                    translatable="yes"
+                                                                >Menu</property>
                                 <property name="xalign">0</property>
                               </object>
                             </child>
@@ -311,15 +266,20 @@
                               <object class="GtkImage" id="icon_terminals">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="icon_name">utilities-terminal-symbolic</property>
-                                <property name="pixel_size">20</property>
+                                <property
+                                                                    name="icon_name"
+                                                                >ac-terminal-symbolic</property>
+                                <property name="pixel_size">22</property>
                               </object>
                             </child>
                             <child>
                               <object class="GtkLabel" id="label_terminals">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="label" translatable="yes">Terminals</property>
+                                <property
+                                                                    name="label"
+                                                                    translatable="yes"
+                                                                >Terminals</property>
                                 <property name="xalign">0</property>
                               </object>
                             </child>
@@ -346,15 +306,20 @@
                               <object class="GtkImage" id="icon_fetch">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="icon_name">system-run-symbolic</property>
-                                <property name="pixel_size">20</property>
+                                <property
+                                                                    name="icon_name"
+                                                                >document-print-symbolic</property>
+                                <property name="pixel_size">26</property>
                               </object>
                             </child>
                             <child>
                               <object class="GtkLabel" id="label_fetch">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="label" translatable="yes">Fetch</property>
+                                <property
+                                                                    name="label"
+                                                                    translatable="yes"
+                                                                >Fetch</property>
                                 <property name="xalign">0</property>
                               </object>
                             </child>
@@ -381,15 +346,20 @@
                               <object class="GtkImage" id="icon_icons">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="icon_name">folder-pictures-symbolic</property>
-                                <property name="pixel_size">20</property>
+                                <property
+                                                                    name="icon_name"
+                                                                >face-monkey-symbolic</property>
+                                <property name="pixel_size">22</property>
                               </object>
                             </child>
                             <child>
                               <object class="GtkLabel" id="label_icons">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="label" translatable="yes">Icons</property>
+                                <property
+                                                                    name="label"
+                                                                    translatable="yes"
+                                                                >Icons</property>
                                 <property name="xalign">0</property>
                               </object>
                             </child>
@@ -416,15 +386,66 @@
                               <object class="GtkImage" id="icon_cursors">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="icon_name">input-mouse-symbolic</property>
-                                <property name="pixel_size">20</property>
+                                <property
+                                                                    name="icon_name"
+                                                                >ac-cursors-symbolic</property>
+                                <property name="pixel_size">22</property>
                               </object>
                             </child>
                             <child>
                               <object class="GtkLabel" id="label_cursors">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="label" translatable="yes">Cursors</property>
+                                <property
+                                                                    name="label"
+                                                                    translatable="yes"
+                                                                >Cursors</property>
+                                <property name="xalign">0</property>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+
+                    <child>
+                      <object class="GtkListBoxRow" id="row_settings">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <child>
+                          <object class="GtkBox" id="box_settings">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="orientation">horizontal</property>
+                            <property name="spacing">12</property>
+                            <property name="margin_top">10</property>
+                            <property name="margin_bottom">10</property>
+                            <property name="margin_start">14</property>
+                            <property name="margin_end">14</property>
+                            <child>
+                              <object
+                                                                class="GtkImage"
+                                                                id="icon_settings_sidebar"
+                                                            >
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property
+                                                                    name="icon_name"
+                                                                >ac-settings-symbolic</property>
+                                <property name="pixel_size">22</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object
+                                                                class="GtkLabel"
+                                                                id="label_settings_sidebar"
+                                                            >
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property
+                                                                    name="label"
+                                                                    translatable="yes"
+                                                                >Settings</property>
                                 <property name="xalign">0</property>
                               </object>
                             </child>
@@ -451,15 +472,20 @@
                               <object class="GtkImage" id="icon_more">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="icon_name">view-more-symbolic</property>
-                                <property name="pixel_size">20</property>
+                                <property
+                                                                    name="icon_name"
+                                                                >ac-hub-symbolic</property>
+                                <property name="pixel_size">22</property>
                               </object>
                             </child>
                             <child>
                               <object class="GtkLabel" id="label_more">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="label" translatable="yes">More</property>
+                                <property
+                                                                    name="label"
+                                                                    translatable="yes"
+                                                                >More</property>
                                 <property name="xalign">0</property>
                               </object>
                             </child>
@@ -511,12 +537,15 @@
                     <property name="orientation">horizontal</property>
                     <property name="halign">center</property>
                     <style>
-                      <class name="linked"/>
+                      <class name="linked" />
                     </style>
 
                     <child>
                       <object class="GtkRadioButton" id="mode_mixer_btn">
-                        <property name="label" translatable="yes">Mixer</property>
+                        <property
+                                                    name="label"
+                                                    translatable="yes"
+                                                >Mixer</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">False</property>
@@ -525,8 +554,11 @@
                     </child>
 
                     <child>
-                      <object class="GtkRadioButton" id="mode_presets_btn">
-                        <property name="label" translatable="yes">Presets</property>
+                      <object class="GtkRadioButton" id="mode_builder_btn">
+                        <property
+                                                    name="label"
+                                                    translatable="yes"
+                                                >Builder</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">False</property>
@@ -535,8 +567,11 @@
                     </child>
 
                     <child>
-                      <object class="GtkRadioButton" id="mode_settings_btn">
-                        <property name="label" translatable="yes">Settings</property>
+                      <object class="GtkRadioButton" id="mode_presets_btn">
+                        <property
+                                                    name="label"
+                                                    translatable="yes"
+                                                >Presets</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">False</property>
@@ -584,7 +619,10 @@
                           <object class="GtkLabel" id="title_wallpapers">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="label" translatable="yes">Wallpapers</property>
+                            <property
+                                                            name="label"
+                                                            translatable="yes"
+                                                        >Wallpapers</property>
                             <property name="xalign">0</property>
                           </object>
                         </child>
@@ -592,13 +630,43 @@
                           <object class="GtkLabel" id="label_wallpaper_count">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="label" translatable="yes">0 wallpapers</property>
+                            <property
+                                                            name="label"
+                                                            translatable="yes"
+                                                        >0 wallpapers</property>
                             <property name="xalign">0</property>
                           </object>
                           <packing>
                             <property name="expand">True</property>
                             <property name="fill">True</property>
                             <property name="position">1</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="button_top_settings">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="relief">none</property>
+                            <property
+                                                            name="tooltip_text"
+                                                            translatable="yes"
+                                                        >Settings</property>
+                            <child>
+                              <object class="GtkImage" id="icon_top_settings">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property
+                                                                    name="icon_name"
+                                                                >ac-settings-symbolic</property>
+                                <property name="pixel_size">18</property>
+                              </object>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">False</property>
+                            <property name="pack_type">end</property>
+                            <property name="position">2</property>
                           </packing>
                         </child>
                       </object>
@@ -620,20 +688,32 @@
                           <object class="GtkLabel" id="label_wallpaper_source">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="label" translatable="yes">System Source</property>
+                            <property
+                                                            name="label"
+                                                            translatable="yes"
+                                                        >System Source</property>
                           </object>
                         </child>
 
                         <child>
-                          <object class="GtkSwitch" id="switch_wallpaper_system_source">
+                          <object
+                                                        class="GtkSwitch"
+                                                        id="switch_wallpaper_system_source"
+                                                    >
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
-                            <property name="tooltip_text" translatable="yes">Off = custom folders, On = system wallpapers</property>
+                            <property
+                                                            name="tooltip_text"
+                                                            translatable="yes"
+                                                        >Off = custom folders, On = system wallpapers</property>
                           </object>
                         </child>
 
                         <child>
-                          <object class="GtkSeparator" id="sep_wallpaper_ctrl_1">
+                          <object
+                                                        class="GtkSeparator"
+                                                        id="sep_wallpaper_ctrl_1"
+                                                    >
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
                             <property name="orientation">vertical</property>
@@ -641,15 +721,24 @@
                         </child>
 
                         <child>
-                          <object class="GtkLabel" id="label_wallpaper_fill_mode">
+                          <object
+                                                        class="GtkLabel"
+                                                        id="label_wallpaper_fill_mode"
+                                                    >
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="label" translatable="yes">Fill</property>
+                            <property
+                                                            name="label"
+                                                            translatable="yes"
+                                                        >Fill</property>
                           </object>
                         </child>
 
                         <child>
-                          <object class="GtkComboBoxText" id="combo_wallpaper_fill_mode">
+                          <object
+                                                        class="GtkComboBoxText"
+                                                        id="combo_wallpaper_fill_mode"
+                                                    >
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
                             <items>
@@ -663,7 +752,10 @@
                         </child>
 
                         <child>
-                          <object class="GtkSeparator" id="sep_wallpaper_ctrl_size">
+                          <object
+                                                        class="GtkSeparator"
+                                                        id="sep_wallpaper_ctrl_size"
+                                                    >
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
                             <property name="orientation">vertical</property>
@@ -671,28 +763,45 @@
                         </child>
 
                         <child>
-                          <object class="GtkLabel" id="label_wallpaper_thumb_size">
+                          <object
+                                                        class="GtkLabel"
+                                                        id="label_wallpaper_thumb_size"
+                                                    >
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="label" translatable="yes">Size</property>
+                            <property
+                                                            name="label"
+                                                            translatable="yes"
+                                                        >Size</property>
                           </object>
                         </child>
 
                         <child>
-                          <object class="GtkScale" id="scale_wallpaper_thumb_size">
+                          <object
+                                                        class="GtkScale"
+                                                        id="scale_wallpaper_thumb_size"
+                                                    >
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="width_request">120</property>
-                            <property name="adjustment">adj_wallpaper_thumb_size</property>
+                            <property
+                                                            name="adjustment"
+                                                        >adj_wallpaper_thumb_size</property>
                             <property name="draw_value">False</property>
                             <property name="digits">0</property>
                             <property name="round_digits">0</property>
-                            <property name="tooltip_text" translatable="yes">Thumbnail size</property>
+                            <property
+                                                            name="tooltip_text"
+                                                            translatable="yes"
+                                                        >Thumbnail size</property>
                           </object>
                         </child>
 
                         <child>
-                          <object class="GtkSeparator" id="sep_wallpaper_ctrl_2">
+                          <object
+                                                        class="GtkSeparator"
+                                                        id="sep_wallpaper_ctrl_2"
+                                                    >
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
                             <property name="orientation">vertical</property>
@@ -703,15 +812,24 @@
                           <object class="GtkLabel" id="label_wallpaper_folder">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="label" translatable="yes">Custom Folder</property>
+                            <property
+                                                            name="label"
+                                                            translatable="yes"
+                                                        >Custom Folder</property>
                           </object>
                         </child>
 
                         <child>
-                          <object class="GtkFileChooserButton" id="chooser_wallpaper_folder">
+                          <object
+                                                        class="GtkFileChooserButton"
+                                                        id="chooser_wallpaper_folder"
+                                                    >
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="title" translatable="yes">Select Wallpaper Folder</property>
+                            <property
+                                                            name="title"
+                                                            translatable="yes"
+                                                        >Select Wallpaper Folder</property>
                             <property name="action">select-folder</property>
                           </object>
                         </child>
@@ -720,13 +838,19 @@
                           <object class="GtkEntry" id="entry_wallpaper_search">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
-                            <property name="placeholder_text" translatable="yes">Search...</property>
+                            <property
+                                                            name="placeholder_text"
+                                                            translatable="yes"
+                                                        >Search...</property>
                             <property name="width_chars">18</property>
                           </object>
                         </child>
 
                         <child>
-                          <object class="GtkComboBoxText" id="combo_wallpaper_sort">
+                          <object
+                                                        class="GtkComboBoxText"
+                                                        id="combo_wallpaper_sort"
+                                                    >
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
                             <items>
@@ -739,11 +863,16 @@
                         </child>
 
                         <child>
-                          <object class="GtkStackSwitcher" id="wallpaper_view_switcher">
+                          <object
+                                                        class="GtkStackSwitcher"
+                                                        id="wallpaper_view_switcher"
+                                                    >
                             <property name="visible">False</property>
                             <property name="can_focus">False</property>
                             <property name="halign">end</property>
-                            <property name="stack">wallpaper_view_stack</property>
+                            <property
+                                                            name="stack"
+                                                        >wallpaper_view_stack</property>
                           </object>
                           <packing>
                             <property name="expand">True</property>
@@ -769,27 +898,42 @@
                         <property name="transition_type">crossfade</property>
 
                         <child>
-                          <object class="GtkOverlay" id="wallpaper_grid_overlay">
+                          <object
+                                                        class="GtkOverlay"
+                                                        id="wallpaper_grid_overlay"
+                                                    >
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
                             <property name="vexpand">True</property>
                             <property name="hexpand">True</property>
                             <child>
-                              <object class="GtkScrolledWindow" id="wallpaper_grid_scroller">
+                              <object
+                                                                class="GtkScrolledWindow"
+                                                                id="wallpaper_grid_scroller"
+                                                            >
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="vexpand">True</property>
                                 <property name="hexpand">True</property>
                                 <child>
-                                  <object class="GtkFlowBox" id="wallpaper_flowbox">
+                                  <object
+                                                                        class="GtkFlowBox"
+                                                                        id="wallpaper_flowbox"
+                                                                    >
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
                                     <property name="hexpand">True</property>
                                     <property name="halign">fill</property>
                                     <property name="valign">start</property>
-                                    <property name="selection_mode">none</property>
-                                    <property name="max_children_per_line">3</property>
-                                    <property name="column_spacing">16</property>
+                                    <property
+                                                                            name="selection_mode"
+                                                                        >none</property>
+                                    <property
+                                                                            name="max_children_per_line"
+                                                                        >3</property>
+                                    <property
+                                                                            name="column_spacing"
+                                                                        >16</property>
                                     <property name="row_spacing">18</property>
                                     <property name="margin_top">14</property>
                                     <property name="margin_bottom">14</property>
@@ -802,12 +946,18 @@
                           </object>
                           <packing>
                             <property name="name">grid</property>
-                            <property name="title" translatable="yes">Grid</property>
+                            <property
+                                                            name="title"
+                                                            translatable="yes"
+                                                        >Grid</property>
                           </packing>
                         </child>
 
                         <child>
-                          <object class="GtkScrolledWindow" id="wallpaper_list_scroller">
+                          <object
+                                                        class="GtkScrolledWindow"
+                                                        id="wallpaper_list_scroller"
+                                                    >
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="vexpand">True</property>
@@ -821,7 +971,10 @@
                           </object>
                           <packing>
                             <property name="name">list</property>
-                            <property name="title" translatable="yes">List</property>
+                            <property
+                                                            name="title"
+                                                            translatable="yes"
+                                                        >List</property>
                           </packing>
                         </child>
 
@@ -836,7 +989,10 @@
                   </object>
                   <packing>
                     <property name="name">wallpapers</property>
-                    <property name="title" translatable="yes">Wallpapers</property>
+                    <property
+                                            name="title"
+                                            translatable="yes"
+                                        >Wallpapers</property>
                   </packing>
                 </child>
                 <child>
@@ -853,11 +1009,14 @@
                       <object class="GtkLabel" id="title_gtk_themes">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">GTK Themes</property>
+                        <property
+                                                    name="label"
+                                                    translatable="yes"
+                                                >GTK Themes</property>
                         <property name="xalign">0</property>
                         <attributes>
-                          <attribute name="weight" value="bold"/>
-                          <attribute name="scale" value="1.5"/>
+                          <attribute name="weight" value="bold" />
+                          <attribute name="scale" value="1.5" />
                         </attributes>
                       </object>
                     </child>
@@ -884,7 +1043,10 @@
                   </object>
                   <packing>
                     <property name="name">gtk_themes</property>
-                    <property name="title" translatable="yes">GTK Themes</property>
+                    <property
+                                            name="title"
+                                            translatable="yes"
+                                        >GTK Themes</property>
                   </packing>
                 </child>
 
@@ -902,16 +1064,22 @@
                       <object class="GtkLabel" id="title_window_themes">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Window Themes</property>
+                        <property
+                                                    name="label"
+                                                    translatable="yes"
+                                                >Window Themes</property>
                         <property name="xalign">0</property>
                         <attributes>
-                          <attribute name="weight" value="bold"/>
-                          <attribute name="scale" value="1.5"/>
+                          <attribute name="weight" value="bold" />
+                          <attribute name="scale" value="1.5" />
                         </attributes>
                       </object>
                     </child>
                     <child>
-                      <object class="GtkScrolledWindow" id="scroll_window_themes">
+                      <object
+                                                class="GtkScrolledWindow"
+                                                id="scroll_window_themes"
+                                            >
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="hexpand">True</property>
@@ -933,27 +1101,10 @@
                   </object>
                   <packing>
                     <property name="name">window_themes</property>
-                    <property name="title" translatable="yes">Window Themes</property>
-                  </packing>
-                </child>
-
-                <child>
-                  <object class="GtkBox" id="page_openbox">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="orientation">vertical</property>
-                    <child>
-                      <object class="GtkLabel" id="title_openbox">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Openbox Config</property>
-                        <property name="xalign">0</property>
-                      </object>
-                    </child>
-                  </object>
-                  <packing>
-                    <property name="name">openbox</property>
-                    <property name="title" translatable="yes">Openbox Config</property>
+                    <property
+                                            name="title"
+                                            translatable="yes"
+                                        >Window Themes</property>
                   </packing>
                 </child>
 
@@ -966,34 +1117,14 @@
                       <object class="GtkLabel" id="title_panels">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Panels</property>
+                        <property name="label" translatable="yes">Bar</property>
                         <property name="xalign">0</property>
                       </object>
                     </child>
                   </object>
                   <packing>
                     <property name="name">panels</property>
-                    <property name="title" translatable="yes">Panels</property>
-                  </packing>
-                </child>
-
-                <child>
-                  <object class="GtkBox" id="page_rofi">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="orientation">vertical</property>
-                    <child>
-                      <object class="GtkLabel" id="title_rofi">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Rofi</property>
-                        <property name="xalign">0</property>
-                      </object>
-                    </child>
-                  </object>
-                  <packing>
-                    <property name="name">rofi</property>
-                    <property name="title" translatable="yes">Rofi</property>
+                    <property name="title" translatable="yes">Bar</property>
                   </packing>
                 </child>
 
@@ -1006,7 +1137,10 @@
                       <object class="GtkLabel" id="title_menu">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Menu</property>
+                        <property
+                                                    name="label"
+                                                    translatable="yes"
+                                                >Menu</property>
                         <property name="xalign">0</property>
                       </object>
                     </child>
@@ -1026,14 +1160,20 @@
                       <object class="GtkLabel" id="title_terminals">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Terminals</property>
+                        <property
+                                                    name="label"
+                                                    translatable="yes"
+                                                >Terminals</property>
                         <property name="xalign">0</property>
                       </object>
                     </child>
                   </object>
                   <packing>
                     <property name="name">terminals</property>
-                    <property name="title" translatable="yes">Terminals</property>
+                    <property
+                                            name="title"
+                                            translatable="yes"
+                                        >Terminals</property>
                   </packing>
                 </child>
 
@@ -1046,7 +1186,10 @@
                       <object class="GtkLabel" id="title_fetch">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Fetch</property>
+                        <property
+                                                    name="label"
+                                                    translatable="yes"
+                                                >Fetch</property>
                         <property name="xalign">0</property>
                       </object>
                     </child>
@@ -1066,7 +1209,10 @@
                       <object class="GtkLabel" id="title_icons">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Icons</property>
+                        <property
+                                                    name="label"
+                                                    translatable="yes"
+                                                >Icons</property>
                         <property name="xalign">0</property>
                       </object>
                     </child>
@@ -1086,7 +1232,10 @@
                       <object class="GtkLabel" id="title_cursors">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Cursors</property>
+                        <property
+                                                    name="label"
+                                                    translatable="yes"
+                                                >Cursors</property>
                         <property name="xalign">0</property>
                       </object>
                     </child>
@@ -1094,6 +1243,32 @@
                   <packing>
                     <property name="name">cursors</property>
                     <property name="title" translatable="yes">Cursors</property>
+                  </packing>
+                </child>
+
+                <child>
+                  <object class="GtkBox" id="page_settings">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="orientation">vertical</property>
+                    <child>
+                      <object class="GtkLabel" id="title_settings_page">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property
+                                                    name="label"
+                                                    translatable="yes"
+                                                >Settings</property>
+                        <property name="xalign">0</property>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="name">settings</property>
+                    <property
+                                            name="title"
+                                            translatable="yes"
+                                        >Settings</property>
                   </packing>
                 </child>
 
@@ -1106,7 +1281,10 @@
                       <object class="GtkLabel" id="title_more">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">More</property>
+                        <property
+                                                    name="label"
+                                                    translatable="yes"
+                                                >More</property>
                         <property name="xalign">0</property>
                       </object>
                     </child>
