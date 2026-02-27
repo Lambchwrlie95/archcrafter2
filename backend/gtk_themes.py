@@ -14,6 +14,7 @@ from .settings import SettingsStore
 class GtkThemeEntry:
     name: str
     path: Path
+    css_path: Path
     colors: dict[str, str] = field(
         default_factory=lambda: {
             "bg": "#2f343f",
@@ -92,6 +93,25 @@ class GtkThemeService:
     def _theme_search_paths(self) -> list[Path]:
         return [p for p in self.system_dirs + self.user_dirs if p.exists()]
 
+    def _resolve_theme_css_path(self, theme_dir: Path) -> Path | None:
+        gtk3_dir = theme_dir / "gtk-3.0"
+        if not gtk3_dir.is_dir():
+            return None
+
+        preferred = ("gtk.css", "gtk-dark.css", "gtk-contained.css")
+        for name in preferred:
+            candidate = gtk3_dir / name
+            if candidate.is_file():
+                return candidate
+
+        try:
+            extra = sorted(p for p in gtk3_dir.glob("*.css") if p.is_file())
+        except Exception:
+            extra = []
+        if extra:
+            return extra[0]
+        return None
+
     def list_themes(self) -> list[GtkThemeEntry]:
         found: dict[str, GtkThemeEntry] = {}
 
@@ -106,14 +126,15 @@ class GtkThemeService:
                 if not p.is_dir():
                     continue
 
-                css_path = p / "gtk-3.0" / "gtk.css"
-                if not css_path.exists():
+                css_path = self._resolve_theme_css_path(p)
+                if css_path is None:
                     continue
 
                 metadata = self.get_theme_metadata(p.name, css_path)
                 found[p.name] = GtkThemeEntry(
                     name=p.name,
                     path=p,
+                    css_path=css_path,
                     colors=metadata["colors"],
                     type=metadata["type"],
                 )
@@ -309,7 +330,6 @@ class GtkThemeService:
         if entry is None:
             return None
 
-        css_file = entry.path / "gtk-3.0" / "gtk.css"
-        if css_file.exists():
-            return css_file
+        if entry.css_path.exists():
+            return entry.css_path
         return None

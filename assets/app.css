@@ -64,6 +64,11 @@
     min-width: 170px;
 }
 
+.gtk-theme-card {
+    min-width: 250px;
+    padding: 12px;
+}
+
 .theme-card:hover {
     background-color: rgba(255, 255, 255, 0.07);
     border-color: rgba(255, 255, 255, 0.16);
@@ -77,6 +82,26 @@
 .theme-title {
     font-size: 12px;
     font-weight: 600;
+}
+
+.theme-subtitle {
+    font-size: 10px;
+    color: rgba(225, 233, 245, 0.62);
+}
+
+.gtk-theme-mini-preview {
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 8px;
+}
+
+.gtk-theme-preview-surface {
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 8px;
+    padding: 8px;
+}
+
+.theme-preview-row {
+    min-height: 18px;
 }
 
 .theme-chip {
@@ -98,7 +123,85 @@
 
 .theme-apply-button {
     border-radius: 6px;
-    padding: 4px 10px;
+    min-height: 30px;
+    padding: 5px 10px;
+}
+
+.icon-theme-card {
+    min-width: 230px;
+    padding: 10px;
+}
+
+.icon-theme-preview-surface {
+    background-color: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 9px;
+    min-width: 190px;
+    min-height: 138px;
+}
+
+.icon-theme-preview-surface-large {
+    padding: 10px;
+    min-width: 520px;
+    min-height: 360px;
+}
+
+.icon-theme-preview-row {
+    min-height: 30px;
+}
+
+.icon-theme-preview-row-dialog {
+    min-height: 34px;
+}
+
+.icon-theme-preview-slot {
+    padding: 1px;
+    border: none;
+    background: transparent;
+    min-width: 26px;
+    min-height: 26px;
+}
+
+.icon-theme-preview-slot-compact {
+    min-width: 20px;
+    min-height: 20px;
+}
+
+.icon-theme-symbolic-divider {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 5px;
+}
+
+.icon-theme-preview-section-title {
+    font-size: 10px;
+    font-weight: 700;
+    color: rgba(225, 233, 245, 0.72);
+    margin-top: 4px;
+}
+
+.icon-theme-actions-row {
+    margin-top: 4px;
+}
+
+.icon-theme-action-button {
+    min-height: 24px;
+    padding: 1px 8px;
+    border-radius: 6px;
+}
+
+.theme-secondary-button {
+    background-image: none;
+    background-color: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.theme-secondary-button:hover {
+    background-color: rgba(255, 255, 255, 0.10);
+}
+
+.theme-primary-button {
+    font-weight: 700;
 }
 
 #sidebar_list row {
@@ -108,6 +211,14 @@
 
 #sidebar_list row:selected {
     background-color: rgba(91, 161, 234, 0.18);
+}
+
+#sidebar_list row image {
+    margin-top: 2px;
+}
+
+.sidebar-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 #top_mode_bar {
@@ -159,6 +270,12 @@
     border-bottom-right-radius: 10px;
 }
 
+.source-choice-btn {
+    min-height: 24px;
+    padding: 2px 8px;
+    font-size: 10px;
+}
+
 .mode-placeholder-title {
     font-size: 19px;
     font-weight: 700;
@@ -166,4 +283,119 @@
 
 .mode-placeholder-subtitle {
     color: rgba(255, 255, 255, 0.72);
+}
+
+.bar-hint-chip {
+    font-size: 10px;
+}
+
+.bar-preset-card {
+    min-width: 460px;
+    padding: 12px;
+}
+
+.bar-preview-surface {
+    background-color: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    padding: 8px;
+}
+
+.bar-preview-strip {
+    min-height: 34px;
+    border-radius: 6px;
+    background-color: rgba(4, 6, 10, 0.62);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    padding: 5px 8px;
+}
+
+.bar-preview-segment {
+    background-color: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 9px;
+}
+
+.bar-preview-image {
+    min-height: 42px;
+    border-radius: 5px;
+}
+
+.bar-preview-meta {
+    font-size: 9px;
+}
+
+.bar-status-ok {
+    background-color: rgba(44, 153, 99, 0.26);
+    border-color: rgba(44, 153, 99, 0.55);
+}
+
+.bar-status-warn {
+    background-color: rgba(178, 130, 45, 0.26);
+    border-color: rgba(178, 130, 45, 0.55);
+}
+
+.wallpaper-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.04);
+    padding-top: 1px;
+}
+
+.wallpaper-controls-row {
+    min-height: 34px;
+}
+
+.wallpaper-count-footer {
+    font-size: 9px;
+    color: rgba(225, 233, 245, 0.56);
+}
+
+.wallpaper-zoom-compact trough {
+    min-height: 3px;
+}
+
+.wallpaper-zoom-compact slider {
+    min-width: 8px;
+    min-height: 8px;
+}
+
+.menu-preset-card {
+    min-width: 320px;
+    padding: 12px;
+}
+
+.menu-engine-badge {
+    background-color: rgba(83, 132, 209, 0.22);
+    border-color: rgba(83, 132, 209, 0.52);
+}
+
+.menu-tag-chip {
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-size: 9px;
+    font-weight: 600;
+    color: rgba(231, 237, 246, 0.86);
+    background-color: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.menu-preview-surface {
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
+.menu-command-label {
+    font-family: monospace;
+    font-size: 10px;
+}
+
+.menu-status-ok {
+    background-color: rgba(44, 153, 99, 0.24);
+    border-color: rgba(44, 153, 99, 0.52);
+}
+
+.menu-status-warn {
+    background-color: rgba(178, 130, 45, 0.24);
+    border-color: rgba(178, 130, 45, 0.52);
 }

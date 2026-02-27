@@ -1064,9 +1064,9 @@
                             <property
                                                             name="label"
                                                             translatable="yes"
-                                                        >Live Preview</property>
+                                                        >Theme Preview</property>
                             <property name="shadow_type">none</property>
-                            <property name="width_request">380</property>
+                            <property name="width_request">420</property>
                             <property name="vexpand">True</property>
                             <child>
                               <object
@@ -1207,12 +1207,631 @@
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="orientation">vertical</property>
+                    <property name="spacing">12</property>
+                    <property name="margin_left">20</property>
+                    <property name="margin_right">20</property>
+                    <property name="margin_top">20</property>
+                    <property name="margin_bottom">20</property>
                     <child>
                       <object class="GtkLabel" id="title_panels">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Bar</property>
+                        <property name="label" translatable="yes">Bar Presets</property>
                         <property name="xalign">0</property>
+                        <attributes>
+                          <attribute name="weight" value="bold" />
+                          <attribute name="scale" value="1.5" />
+                        </attributes>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="subtitle_panels">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property
+                                                    name="label"
+                                                    translatable="yes"
+                                                >Display-bar presets built for wide horizontal layouts. Use these for Polybar or Tint2, then open Builder when you want to design new bars.</property>
+                        <property name="xalign">0</property>
+                        <property name="wrap">True</property>
+                        <property name="max_width_chars">78</property>
+                        <style>
+                          <class name="theme-subtitle" />
+                        </style>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="bar_hints_row">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="orientation">horizontal</property>
+                        <property name="spacing">8</property>
+                        <child>
+                          <object class="GtkLabel" id="label_bar_runtime_hint">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="label" translatable="yes">Session hint: detecting runtime...</property>
+                            <property name="xalign">0</property>
+                            <style>
+                              <class name="theme-type-badge" />
+                              <class name="bar-hint-chip" />
+                            </style>
+                          </object>
+                          <packing>
+                            <property name="expand">True</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="label_bar_shape_hint">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="label" translatable="yes">Wide preview surfaces, not square toasts</property>
+                            <property name="xalign">1</property>
+                            <style>
+                              <class name="theme-type-badge" />
+                              <class name="bar-hint-chip" />
+                            </style>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">False</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkScrolledWindow" id="scroll_bar_presets">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="hexpand">True</property>
+                        <property name="vexpand">True</property>
+                        <property name="hscrollbar_policy">never</property>
+                        <property name="shadow_type">none</property>
+                        <child>
+                          <object class="GtkViewport" id="viewport_bar_presets">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <child>
+                              <object class="GtkBox" id="bar_presets_column">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="orientation">vertical</property>
+                                <property name="spacing">12</property>
+                                <property name="margin_top">2</property>
+                                <property name="margin_bottom">2</property>
+                                <child>
+                                  <object class="GtkBox" id="card_bar_polybar">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="orientation">vertical</property>
+                                    <property name="spacing">8</property>
+                                    <style>
+                                      <class name="theme-card" />
+                                      <class name="bar-preset-card" />
+                                    </style>
+                                    <child>
+                                      <object class="GtkBox" id="card_bar_polybar_top">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property name="orientation">horizontal</property>
+                                        <property name="spacing">8</property>
+                                        <child>
+                                          <object class="GtkLabel" id="title_bar_polybar">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                            <property name="label" translatable="yes">Polybar</property>
+                                            <property name="xalign">0</property>
+                                            <property name="hexpand">True</property>
+                                            <attributes>
+                                              <attribute name="weight" value="bold" />
+                                              <attribute name="scale" value="1.06" />
+                                            </attributes>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">True</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkLabel" id="label_bar_polybar_status">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                            <property name="label" translatable="yes">Detecting...</property>
+                                            <style>
+                                              <class name="theme-type-badge" />
+                                            </style>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">False</property>
+                                            <property name="position">1</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkBox" id="preview_bar_polybar_surface">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property name="orientation">vertical</property>
+                                        <property name="spacing">6</property>
+                                        <style>
+                                          <class name="bar-preview-surface" />
+                                        </style>
+                                        <child>
+                                          <object class="GtkImage" id="image_bar_polybar_preview">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                            <property name="hexpand">True</property>
+                                            <property name="halign">fill</property>
+                                            <style>
+                                              <class name="bar-preview-image" />
+                                            </style>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkLabel" id="label_bar_polybar_preview_meta">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                            <property name="label" translatable="yes">Preview source: schematic</property>
+                                            <property name="xalign">0</property>
+                                            <style>
+                                              <class name="theme-subtitle" />
+                                              <class name="bar-preview-meta" />
+                                            </style>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">1</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkBox" id="preview_polybar_strip">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                            <property name="orientation">horizontal</property>
+                                            <property name="spacing">6</property>
+                                            <property name="hexpand">True</property>
+                                            <style>
+                                              <class name="bar-preview-strip" />
+                                            </style>
+                                            <child>
+                                              <object class="GtkLabel" id="preview_polybar_left">
+                                                <property name="visible">True</property>
+                                                <property name="can_focus">False</property>
+                                                <property name="label" translatable="yes">ws1 ws2 ws3</property>
+                                                <style>
+                                                  <class name="bar-preview-segment" />
+                                                </style>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">False</property>
+                                                <property name="fill">False</property>
+                                                <property name="position">0</property>
+                                              </packing>
+                                            </child>
+                                            <child>
+                                              <object class="GtkLabel" id="preview_polybar_center">
+                                                <property name="visible">True</property>
+                                                <property name="can_focus">False</property>
+                                                <property name="label" translatable="yes">Now Playing</property>
+                                                <style>
+                                                  <class name="bar-preview-segment" />
+                                                </style>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">True</property>
+                                                <property name="fill">False</property>
+                                                <property name="position">1</property>
+                                              </packing>
+                                            </child>
+                                            <child>
+                                              <object class="GtkLabel" id="preview_polybar_right">
+                                                <property name="visible">True</property>
+                                                <property name="can_focus">False</property>
+                                                <property name="label" translatable="yes">vol 58% | 14:36</property>
+                                                <style>
+                                                  <class name="bar-preview-segment" />
+                                                </style>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">False</property>
+                                                <property name="fill">False</property>
+                                                <property name="position">2</property>
+                                              </packing>
+                                            </child>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">2</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkLabel" id="desc_bar_polybar">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property
+                                                                            name="label"
+                                                                            translatable="yes"
+                                                                        >Best for X11 setups that need module-rich top bars and explicit workspace blocks.</property>
+                                        <property name="xalign">0</property>
+                                        <property name="wrap">True</property>
+                                        <style>
+                                          <class name="theme-subtitle" />
+                                        </style>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkBox" id="bar_polybar_actions">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property name="orientation">horizontal</property>
+                                        <property name="spacing">8</property>
+                                        <child>
+                                          <object class="GtkButton" id="button_bar_polybar_apply">
+                                            <property name="label" translatable="yes">Apply Preset</property>
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">True</property>
+                                            <property name="receives_default">True</property>
+                                            <style>
+                                              <class name="theme-apply-button" />
+                                              <class name="theme-primary-button" />
+                                            </style>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">False</property>
+                                            <property name="position">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkButton" id="button_bar_polybar_open">
+                                            <property name="label" translatable="yes">Open Config</property>
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">True</property>
+                                            <property name="receives_default">True</property>
+                                            <style>
+                                              <class name="theme-apply-button" />
+                                              <class name="theme-primary-button" />
+                                            </style>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">False</property>
+                                            <property name="position">1</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkButton" id="button_bar_polybar_copy">
+                                            <property name="label" translatable="yes">Copy Path</property>
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">True</property>
+                                            <property name="receives_default">True</property>
+                                            <style>
+                                              <class name="theme-apply-button" />
+                                              <class name="theme-secondary-button" />
+                                            </style>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">False</property>
+                                            <property name="position">2</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                    </child>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkBox" id="card_bar_tint2">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="orientation">vertical</property>
+                                    <property name="spacing">8</property>
+                                    <style>
+                                      <class name="theme-card" />
+                                      <class name="bar-preset-card" />
+                                    </style>
+                                    <child>
+                                      <object class="GtkBox" id="card_bar_tint2_top">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property name="orientation">horizontal</property>
+                                        <property name="spacing">8</property>
+                                        <child>
+                                          <object class="GtkLabel" id="title_bar_tint2">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                            <property name="label" translatable="yes">Tint2</property>
+                                            <property name="xalign">0</property>
+                                            <property name="hexpand">True</property>
+                                            <attributes>
+                                              <attribute name="weight" value="bold" />
+                                              <attribute name="scale" value="1.06" />
+                                            </attributes>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">True</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkLabel" id="label_bar_tint2_status">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                            <property name="label" translatable="yes">Detecting...</property>
+                                            <style>
+                                              <class name="theme-type-badge" />
+                                            </style>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">False</property>
+                                            <property name="position">1</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkBox" id="preview_bar_tint2_surface">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property name="orientation">vertical</property>
+                                        <property name="spacing">6</property>
+                                        <style>
+                                          <class name="bar-preview-surface" />
+                                        </style>
+                                        <child>
+                                          <object class="GtkImage" id="image_bar_tint2_preview">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                            <property name="hexpand">True</property>
+                                            <property name="halign">fill</property>
+                                            <style>
+                                              <class name="bar-preview-image" />
+                                            </style>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkLabel" id="label_bar_tint2_preview_meta">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                            <property name="label" translatable="yes">Preview source: schematic</property>
+                                            <property name="xalign">0</property>
+                                            <style>
+                                              <class name="theme-subtitle" />
+                                              <class name="bar-preview-meta" />
+                                            </style>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">1</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkBox" id="preview_tint2_strip">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                            <property name="orientation">horizontal</property>
+                                            <property name="spacing">6</property>
+                                            <property name="hexpand">True</property>
+                                            <style>
+                                              <class name="bar-preview-strip" />
+                                            </style>
+                                            <child>
+                                              <object class="GtkLabel" id="preview_tint2_left">
+                                                <property name="visible">True</property>
+                                                <property name="can_focus">False</property>
+                                                <property name="label" translatable="yes">menu | launcher</property>
+                                                <style>
+                                                  <class name="bar-preview-segment" />
+                                                </style>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">False</property>
+                                                <property name="fill">False</property>
+                                                <property name="position">0</property>
+                                              </packing>
+                                            </child>
+                                            <child>
+                                              <object class="GtkLabel" id="preview_tint2_center">
+                                                <property name="visible">True</property>
+                                                <property name="can_focus">False</property>
+                                                <property name="label" translatable="yes">task list</property>
+                                                <style>
+                                                  <class name="bar-preview-segment" />
+                                                </style>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">True</property>
+                                                <property name="fill">False</property>
+                                                <property name="position">1</property>
+                                              </packing>
+                                            </child>
+                                            <child>
+                                              <object class="GtkLabel" id="preview_tint2_right">
+                                                <property name="visible">True</property>
+                                                <property name="can_focus">False</property>
+                                                <property name="label" translatable="yes">cpu | net | clock</property>
+                                                <style>
+                                                  <class name="bar-preview-segment" />
+                                                </style>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">False</property>
+                                                <property name="fill">False</property>
+                                                <property name="position">2</property>
+                                              </packing>
+                                            </child>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">2</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkLabel" id="desc_bar_tint2">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property
+                                                                            name="label"
+                                                                            translatable="yes"
+                                                                        >Lean profile for Openbox-focused desktops that want a simple taskbar and low overhead.</property>
+                                        <property name="xalign">0</property>
+                                        <property name="wrap">True</property>
+                                        <style>
+                                          <class name="theme-subtitle" />
+                                        </style>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkBox" id="bar_tint2_actions">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property name="orientation">horizontal</property>
+                                        <property name="spacing">8</property>
+                                        <child>
+                                          <object class="GtkButton" id="button_bar_tint2_apply">
+                                            <property name="label" translatable="yes">Apply Preset</property>
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">True</property>
+                                            <property name="receives_default">True</property>
+                                            <style>
+                                              <class name="theme-apply-button" />
+                                              <class name="theme-primary-button" />
+                                            </style>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">False</property>
+                                            <property name="position">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkButton" id="button_bar_tint2_open">
+                                            <property name="label" translatable="yes">Open Config</property>
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">True</property>
+                                            <property name="receives_default">True</property>
+                                            <style>
+                                              <class name="theme-apply-button" />
+                                              <class name="theme-primary-button" />
+                                            </style>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">False</property>
+                                            <property name="position">1</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkButton" id="button_bar_tint2_copy">
+                                            <property name="label" translatable="yes">Copy Path</property>
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">True</property>
+                                            <property name="receives_default">True</property>
+                                            <style>
+                                              <class name="theme-apply-button" />
+                                              <class name="theme-secondary-button" />
+                                            </style>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">False</property>
+                                            <property name="position">2</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                    </child>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkBox" id="bar_builder_callout">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="orientation">horizontal</property>
+                                    <property name="spacing">8</property>
+                                    <child>
+                                      <object class="GtkLabel" id="label_bar_builder_note">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property
+                                                                            name="label"
+                                                                            translatable="yes"
+                                                                        >Need a custom layout? Open Builder to design new bars and modules.</property>
+                                        <property name="xalign">0</property>
+                                        <property name="hexpand">True</property>
+                                        <style>
+                                          <class name="theme-subtitle" />
+                                        </style>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">True</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkButton" id="button_bar_open_builder">
+                                        <property name="label" translatable="yes">Open Builder</property>
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">True</property>
+                                        <property name="receives_default">True</property>
+                                        <style>
+                                          <class name="theme-apply-button" />
+                                          <class name="theme-secondary-button" />
+                                        </style>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">False</property>
+                                        <property name="position">1</property>
+                                      </packing>
+                                    </child>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">2</property>
+                                  </packing>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
                       </object>
                     </child>
                   </object>
@@ -1227,15 +1846,324 @@
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="orientation">vertical</property>
+                    <property name="spacing">12</property>
+                    <property name="margin_left">20</property>
+                    <property name="margin_right">20</property>
+                    <property name="margin_top">20</property>
+                    <property name="margin_bottom">20</property>
                     <child>
-                      <object class="GtkLabel" id="title_menu">
+                      <object class="GtkBox" id="menu_header_row">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property
-                                                    name="label"
-                                                    translatable="yes"
-                                                >Menu</property>
+                        <property name="orientation">horizontal</property>
+                        <property name="spacing">8</property>
+                        <child>
+                          <object class="GtkLabel" id="title_menu">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="label" translatable="yes">Menu Presets</property>
+                            <property name="xalign">0</property>
+                            <attributes>
+                              <attribute name="weight" value="bold" />
+                              <attribute name="scale" value="1.5" />
+                            </attributes>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">False</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="label_menu_count">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="xalign">1</property>
+                            <property name="label" translatable="yes">0 presets</property>
+                            <style>
+                              <class name="theme-subtitle" />
+                              <class name="theme-type-badge" />
+                            </style>
+                          </object>
+                          <packing>
+                            <property name="expand">True</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="subtitle_menu">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
                         <property name="xalign">0</property>
+                        <property name="wrap">True</property>
+                        <property name="max_width_chars">84</property>
+                        <property name="label" translatable="yes">Browse launcher/menu presets (Rofi, dmenu, jgmenu, Wayland launchers), tag them by purpose, and send any preset to Builder for custom editing.</property>
+                        <style>
+                          <class name="theme-subtitle" />
+                        </style>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="menu_controls_row">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="orientation">horizontal</property>
+                        <property name="spacing">8</property>
+                        <child>
+                          <object class="GtkSearchEntry" id="entry_menu_search">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="placeholder_text" translatable="yes">Search menu presets...</property>
+                            <property name="width_chars">26</property>
+                          </object>
+                          <packing>
+                            <property name="expand">True</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkComboBoxText" id="combo_menu_engine_filter">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">False</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkComboBoxText" id="combo_menu_purpose_filter">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">False</property>
+                            <property name="position">2</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkComboBoxText" id="combo_menu_sort">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">False</property>
+                            <property name="position">3</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkCheckButton" id="check_menu_installed_only">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="label" translatable="yes">Installed only</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">False</property>
+                            <property name="position">4</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="button_menu_import">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="label" translatable="yes">Import Preset</property>
+                            <style>
+                              <class name="theme-apply-button" />
+                              <class name="theme-secondary-button" />
+                            </style>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">False</property>
+                            <property name="position">5</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="button_menu_open_builder">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="label" translatable="yes">Open Builder</property>
+                            <style>
+                              <class name="theme-apply-button" />
+                            </style>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">False</property>
+                            <property name="position">6</property>
+                          </packing>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="menu_content_row">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="orientation">horizontal</property>
+                        <property name="spacing">16</property>
+                        <property name="hexpand">True</property>
+                        <property name="vexpand">True</property>
+                        <child>
+                          <object class="GtkScrolledWindow" id="scroll_menu_presets">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="hexpand">True</property>
+                            <property name="vexpand">True</property>
+                            <property name="shadow_type">none</property>
+                            <child>
+                              <object class="GtkFlowBox" id="flowbox_menu_presets">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="selection_mode">none</property>
+                                <property name="column_spacing">12</property>
+                                <property name="row_spacing">12</property>
+                                <property name="min_children_per_line">1</property>
+                                <property name="max_children_per_line">2</property>
+                              </object>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="expand">True</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkFrame" id="frame_menu_preview">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="shadow_type">none</property>
+                            <property name="label_xalign">0</property>
+                            <property name="label" translatable="yes">Preset Preview</property>
+                            <property name="width_request">390</property>
+                            <property name="vexpand">True</property>
+                            <child>
+                              <object class="GtkBox" id="menu_preview_container">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="orientation">vertical</property>
+                                <property name="spacing">8</property>
+                                <property name="margin_left">10</property>
+                                <property name="margin_right">10</property>
+                                <property name="margin_top">10</property>
+                                <property name="margin_bottom">10</property>
+                                <child>
+                                  <object class="GtkLabel" id="label_menu_preview_title">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="xalign">0</property>
+                                    <property name="ellipsize">end</property>
+                                    <property name="label" translatable="yes">Select a menu preset</property>
+                                    <style>
+                                      <class name="theme-title" />
+                                    </style>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkDrawingArea" id="menu_preview_area">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="height_request">180</property>
+                                    <style>
+                                      <class name="menu-preview-surface" />
+                                    </style>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel" id="label_menu_preview_meta">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="xalign">0</property>
+                                    <property name="wrap">True</property>
+                                    <property name="label" translatable="yes">Choose a card to inspect engine details and compatibility.</property>
+                                    <style>
+                                      <class name="theme-subtitle" />
+                                    </style>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel" id="label_menu_preview_tags">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="xalign">0</property>
+                                    <property name="wrap">True</property>
+                                    <property name="label" translatable="yes">Tags: -</property>
+                                    <style>
+                                      <class name="theme-subtitle" />
+                                    </style>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel" id="label_menu_preview_command">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="xalign">0</property>
+                                    <property name="wrap">True</property>
+                                    <property name="selectable">True</property>
+                                    <property name="label" translatable="yes">Command: -</property>
+                                    <style>
+                                      <class name="theme-subtitle" />
+                                      <class name="menu-command-label" />
+                                    </style>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkBox" id="menu_preview_actions_row">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="orientation">horizontal</property>
+                                    <property name="spacing">8</property>
+                                    <child>
+                                      <object class="GtkButton" id="button_menu_copy_command">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">True</property>
+                                        <property name="label" translatable="yes">Copy Command</property>
+                                        <style>
+                                          <class name="theme-apply-button" />
+                                          <class name="theme-secondary-button" />
+                                        </style>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">True</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkButton" id="button_menu_clone_builder">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">True</property>
+                                        <property name="label" translatable="yes">Send to Builder</property>
+                                        <style>
+                                          <class name="theme-apply-button" />
+                                          <class name="suggested-action" />
+                                        </style>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">True</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">1</property>
+                                      </packing>
+                                    </child>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
                       </object>
                     </child>
                   </object>
@@ -1276,15 +2204,292 @@
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="orientation">vertical</property>
+                    <property name="spacing">12</property>
+                    <property name="margin_left">20</property>
+                    <property name="margin_right">20</property>
+                    <property name="margin_top">20</property>
+                    <property name="margin_bottom">20</property>
                     <child>
                       <object class="GtkLabel" id="title_fetch">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property
-                                                    name="label"
-                                                    translatable="yes"
-                                                >Fetch</property>
+                        <property name="label" translatable="yes">Fetch Presets</property>
                         <property name="xalign">0</property>
+                        <attributes>
+                          <attribute name="weight" value="bold" />
+                          <attribute name="scale" value="1.5" />
+                        </attributes>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="subtitle_fetch">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="xalign">0</property>
+                        <property name="wrap">True</property>
+                        <property name="max_width_chars">86</property>
+                        <property name="label" translatable="yes">Browse terminal fetch presets, preview their generated output, and set defaults for quick reuse.</property>
+                        <style>
+                          <class name="theme-subtitle" />
+                        </style>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="fetch_control_row">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="orientation">horizontal</property>
+                        <property name="spacing">8</property>
+                        <child>
+                          <object class="GtkComboBoxText" id="combo_fetch_engine">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="tooltip_text" translatable="yes">Select which fetch engine to browse</property>
+                            <items>
+                              <item translatable="yes">All Engines</item>
+                              <item translatable="yes">Fastfetch</item>
+                              <item translatable="yes">Neofetch</item>
+                              <item translatable="yes">Pfetch</item>
+                            </items>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkFileChooserButton" id="chooser_fetch_preset_dir">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="action">select-folder</property>
+                            <property name="title" translatable="yes">Select Fetch Preset Directory</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkEntry" id="entry_fetch_search">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="hexpand">True</property>
+                            <property name="placeholder_text" translatable="yes">Search presets...</property>
+                            <property name="width_chars">24</property>
+                          </object>
+                          <packing>
+                            <property name="expand">True</property>
+                            <property name="fill">True</property>
+                            <property name="position">2</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="button_fetch_refresh">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="label" translatable="yes">Refresh</property>
+                            <style>
+                              <class name="theme-apply-button" />
+                            </style>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">False</property>
+                            <property name="position">3</property>
+                          </packing>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkPaned" id="paned_fetch_main">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="orientation">horizontal</property>
+                        <property name="position">450</property>
+                        <property name="wide_handle">True</property>
+                        <property name="hexpand">True</property>
+                        <property name="vexpand">True</property>
+                        <child>
+                          <object class="GtkBox" id="card_fetch_presets">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="orientation">vertical</property>
+                            <property name="spacing">8</property>
+                            <style>
+                              <class name="theme-card" />
+                            </style>
+                            <child>
+                              <object class="GtkLabel" id="title_fetch_presets">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="xalign">0</property>
+                                <property name="label" translatable="yes">Available Presets</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkScrolledWindow" id="scroll_fetch_presets">
+                                <property name="visible">True</property>
+                                <property name="can_focus">True</property>
+                                <property name="hexpand">True</property>
+                                <property name="vexpand">True</property>
+                                <property name="hscrollbar_policy">never</property>
+                                <property name="shadow_type">none</property>
+                                <child>
+                                  <object class="GtkFlowBox" id="flowbox_fetch_presets">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="selection_mode">single</property>
+                                    <property name="activate_on_single_click">True</property>
+                                    <property name="column_spacing">8</property>
+                                    <property name="row_spacing">8</property>
+                                    <property name="min_children_per_line">1</property>
+                                    <property name="max_children_per_line">1</property>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="resize">True</property>
+                            <property name="shrink">False</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkBox" id="card_fetch_preview">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="orientation">vertical</property>
+                            <property name="spacing">8</property>
+                            <style>
+                              <class name="theme-card" />
+                            </style>
+                            <child>
+                              <object class="GtkLabel" id="title_fetch_preview">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="xalign">0</property>
+                                <property name="label" translatable="yes">Preset Preview</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="subtitle_fetch_selected_path">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="xalign">0</property>
+                                <property name="label" translatable="yes">Selected path</property>
+                                <style>
+                                  <class name="theme-subtitle" />
+                                </style>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="label_fetch_selected_path">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="xalign">0</property>
+                                <property name="selectable">True</property>
+                                <property name="ellipsize">middle</property>
+                                <property name="label" translatable="yes">No preset selected</property>
+                                <style>
+                                  <class name="theme-type-badge" />
+                                </style>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkScrolledWindow" id="scroll_fetch_preview">
+                                <property name="visible">True</property>
+                                <property name="can_focus">True</property>
+                                <property name="hexpand">True</property>
+                                <property name="vexpand">True</property>
+                                <property name="shadow_type">in</property>
+                                <child>
+                                  <object class="GtkTextView" id="textview_fetch_preview">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">True</property>
+                                    <property name="editable">False</property>
+                                    <property name="cursor_visible">False</property>
+                                    <property name="monospace">True</property>
+                                    <property name="wrap_mode">word-char</property>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="resize">True</property>
+                            <property name="shrink">False</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">True</property>
+                        <property name="fill">True</property>
+                        <property name="position">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="fetch_actions_row">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="orientation">horizontal</property>
+                        <property name="spacing">8</property>
+                        <child>
+                          <object class="GtkButton" id="button_fetch_run_preview">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                            <property name="label" translatable="yes">Run Preview</property>
+                            <style>
+                              <class name="theme-apply-button" />
+                              <class name="suggested-action" />
+                            </style>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="button_fetch_set_default">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                            <property name="label" translatable="yes">Set Default</property>
+                            <style>
+                              <class name="theme-apply-button" />
+                            </style>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="spacer_fetch_actions">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="label"></property>
+                          </object>
+                          <packing>
+                            <property name="expand">True</property>
+                            <property name="fill">True</property>
+                            <property name="position">2</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="button_fetch_open_file">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="label" translatable="yes">Open File</property>
+                            <style>
+                              <class name="theme-apply-button" />
+                            </style>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="button_fetch_reveal_folder">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="label" translatable="yes">Reveal Folder</property>
+                            <style>
+                              <class name="theme-apply-button" />
+                            </style>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="button_fetch_open_builder">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="label" translatable="yes">Open Builder</property>
+                            <style>
+                              <class name="theme-apply-button" />
+                            </style>
+                          </object>
+                        </child>
                       </object>
                     </child>
                   </object>
@@ -1426,24 +2631,146 @@
                     <property name="can_focus">False</property>
                     <property name="orientation">vertical</property>
                     <child>
-                      <object class="GtkLabel" id="title_settings_page">
+                      <object class="GtkScrolledWindow" id="scroll_settings">
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property
-                                                    name="label"
-                                                    translatable="yes"
-                                                >Settings</property>
-                        <property name="xalign">0</property>
+                        <property name="can_focus">True</property>
+                        <property name="hexpand">True</property>
+                        <property name="vexpand">True</property>
+                        <property name="shadow_type">none</property>
+                        <child>
+                          <object class="GtkBox" id="box_settings_content">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="orientation">vertical</property>
+                            <property name="spacing">18</property>
+                            <property name="margin_start">24</property>
+                            <property name="margin_end">24</property>
+                            <property name="margin_top">24</property>
+                            <property name="margin_bottom">24</property>
+
+                            <!-- Section: Diagnostics -->
+                            <child>
+                              <object class="GtkBox">
+                                <property name="visible">True</property>
+                                <property name="orientation">vertical</property>
+                                <property name="spacing">8</property>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="label">App Diagnostics</property>
+                                    <property name="xalign">0</property>
+                                    <style>
+                                      <class name="mode-placeholder-title"/>
+                                    </style>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkListBox" id="list_diagnostics">
+                                    <property name="visible">True</property>
+                                    <property name="selection_mode">none</property>
+                                    <style>
+                                      <class name="view"/>
+                                    </style>
+                                    <!-- Rows will be added dynamically -->
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+
+                            <!-- Section: Paths -->
+                            <child>
+                              <object class="GtkBox">
+                                <property name="visible">True</property>
+                                <property name="orientation">vertical</property>
+                                <property name="spacing">8</property>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="label">App Paths</property>
+                                    <property name="xalign">0</property>
+                                    <style>
+                                      <class name="mode-placeholder-title"/>
+                                    </style>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkListBox" id="list_paths">
+                                    <property name="visible">True</property>
+                                    <property name="selection_mode">none</property>
+                                    <style>
+                                      <class name="view"/>
+                                    </style>
+                                    <!-- Rows will be added dynamically -->
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+
+                            <!-- Section: Maintenance -->
+                            <child>
+                              <object class="GtkBox">
+                                <property name="visible">True</property>
+                                <property name="orientation">vertical</property>
+                                <property name="spacing">8</property>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="label">Maintenance</property>
+                                    <property name="xalign">0</property>
+                                    <style>
+                                      <class name="mode-placeholder-title"/>
+                                    </style>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkBox">
+                                    <property name="visible">True</property>
+                                    <property name="spacing">12</property>
+                                    <child>
+                                      <object class="GtkButton" id="btn_clear_cache">
+                                        <property name="visible">True</property>
+                                        <property name="label">Clear Cache</property>
+                                        <property name="always_show_image">True</property>
+                                        <property name="image">img_clear_cache</property>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkButton" id="btn_reset_settings">
+                                        <property name="visible">True</property>
+                                        <property name="label">Reset All Settings</property>
+                                        <property name="always_show_image">True</property>
+                                        <property name="image">img_reset_settings</property>
+                                        <style>
+                                          <class name="destructive-action"/>
+                                        </style>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+
+                          </object>
+                        </child>
                       </object>
                     </child>
                   </object>
                   <packing>
                     <property name="name">settings</property>
-                    <property
-                                            name="title"
-                                            translatable="yes"
-                                        >Settings</property>
+                    <property name="title" translatable="yes">Settings</property>
                   </packing>
+                </child>
+
+                <!-- Icons for buttons -->
+                <child>
+                  <object class="GtkImage" id="img_clear_cache">
+                    <property name="icon_name">edit-clear-all-symbolic</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkImage" id="img_reset_settings">
+                    <property name="icon_name">view-refresh-symbolic</property>
+                  </object>
                 </child>
 
                 <child>

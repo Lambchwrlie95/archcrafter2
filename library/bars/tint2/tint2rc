@@ -1,0 +1,73 @@
+# ArchCrafter2 Tint2 preset
+# Installed by the Bar tab "Apply Preset" action.
+
+# --- Basic panel geometry ---
+panel_items = LTC
+panel_position = top center horizontal
+panel_size = 100% 30
+panel_margin = 0 0
+panel_padding = 6 3 6
+panel_background_id = 1
+wm_menu = 1
+panel_dock = 0
+panel_pivot_struts = 0
+
+# --- Backgrounds ---
+rounded = 0
+border_width = 1
+border_sides = TBLR
+border_content_tint_weight = 0
+background_color = #1c2430 95
+border_color = #2f3c4d 100
+background_color_hover = #263346 100
+border_color_hover = #4e6885 100
+background_color_pressed = #5b82b5 100
+border_color_pressed = #84a8d6 100
+
+background_id = 1
+
+# --- Launcher ---
+launcher_padding = 2 2 2
+launcher_background_id = 0
+launcher_icon_background_id = 0
+launcher_icon_size = 16
+launcher_item_app = /usr/share/applications/xfce4-terminal.desktop
+launcher_item_app = /usr/share/applications/firefox.desktop
+
+# --- Taskbar ---
+taskbar_mode = multi_desktop
+taskbar_padding = 4 0 4
+taskbar_background_id = 0
+taskbar_active_background_id = 0
+taskbar_name = 1
+taskbar_hide_if_empty = 0
+taskbar_distribute_size = 1
+
+task_padding = 6 3 6
+task_background_id = 0
+task_active_background_id = 1
+task_urgent_background_id = 1
+task_icon = 1
+task_text = 1
+task_text_centered = 0
+task_maximum_size = 160 28
+task_font = Sans 9
+task_font_color = #e8eef7 100
+
+# --- Clock ---
+time1_format = %H:%M
+time1_font = Sans Bold 9
+time2_format = %a %d %b
+time2_font = Sans 8
+clock_font_color = #e8eef7 100
+clock_padding = 8 0
+clock_background_id = 0
+clock_lclick_command =
+clock_rclick_command =
+
+# --- System tray ---
+systray_padding = 4 2 4
+systray_background_id = 0
+systray_sort = ascending
+systray_icon_size = 16
+

@@ -13,4 +13,7 @@ def detect_external_tools() -> dict[str, str | None]:
         "magick_or_convert": magick,
         "gsettings": shutil.which("gsettings"),
         "openbox": shutil.which("openbox"),
+        "fastfetch": shutil.which("fastfetch"),
+        "neofetch": shutil.which("neofetch"),
+        "xdg_open": shutil.which("xdg-open"),
     }

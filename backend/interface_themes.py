@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import configparser
 from dataclasses import dataclass
 from pathlib import Path
 import subprocess
@@ -11,6 +12,9 @@ from .settings import SettingsStore
 class InterfaceThemeEntry:
     name: str
     path: Path
+    display_name: str = ""
+    comment: str = ""
+    inherits: tuple[str, ...] = ()
 
 
 class InterfaceThemeService:
@@ -26,6 +30,42 @@ class InterfaceThemeService:
     def _search_dirs(self) -> list[Path]:
         return [p for p in self.system_dirs + self.user_dirs if p.exists()]
 
+    def _read_index_theme_metadata(
+        self, index_theme_path: Path, fallback_name: str
+    ) -> tuple[str, str, tuple[str, ...]]:
+        display_name = fallback_name
+        comment = ""
+        inherits: tuple[str, ...] = ()
+
+        parser = configparser.ConfigParser(interpolation=None, strict=False)
+        try:
+            content = index_theme_path.read_text(encoding="utf-8", errors="ignore")
+            parser.read_string(content)
+        except Exception:
+            return display_name, comment, inherits
+
+        section = "Icon Theme"
+        if parser.has_section(section):
+            try:
+                value = parser.get(section, "Name", fallback=display_name).strip()
+                if value:
+                    display_name = value
+            except Exception:
+                pass
+            try:
+                comment = parser.get(section, "Comment", fallback="").strip()
+            except Exception:
+                comment = ""
+            try:
+                inherit_raw = parser.get(section, "Inherits", fallback="")
+                inherits = tuple(
+                    part.strip() for part in inherit_raw.split(",") if part.strip()
+                )
+            except Exception:
+                inherits = ()
+
+        return display_name, comment, inherits
+
     def _list_themes(self, require_cursors: bool) -> list[InterfaceThemeEntry]:
         found: dict[str, InterfaceThemeEntry] = {}
         for folder in self._search_dirs():
@@ -37,13 +77,26 @@ class InterfaceThemeService:
             for p in entries:
                 if not p.is_dir():
                     continue
-                if not (p / "index.theme").exists():
+                index_theme = p / "index.theme"
+                if not index_theme.exists():
                     continue
                 if require_cursors and not (p / "cursors").is_dir():
                     continue
-                found[p.name] = InterfaceThemeEntry(name=p.name, path=p)
+                display_name, comment, inherits = self._read_index_theme_metadata(
+                    index_theme, p.name
+                )
+                found[p.name] = InterfaceThemeEntry(
+                    name=p.name,
+                    path=p,
+                    display_name=display_name,
+                    comment=comment,
+                    inherits=inherits,
+                )
 
-        return sorted(found.values(), key=lambda x: x.name.lower())
+        return sorted(
+            found.values(),
+            key=lambda x: ((x.display_name or x.name).lower(), x.name.lower()),
+        )
 
     def list_icon_themes(self) -> list[InterfaceThemeEntry]:
         return self._list_themes(require_cursors=False)
