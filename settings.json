@@ -1,0 +1,31 @@
+{
+  "wallpapers": {
+    "source": "custom",
+    "fill_mode": "zoom-fill",
+    "view_mode": "grid",
+    "custom_dirs": [
+      "/home/lamb/Pictures/Archlab-Wallpapers/walls",
+      "/home/lamb/.config/archcrafter2/library/wallpapers/colorized"
+    ],
+    "last_applied": "/home/lamb/Pictures/Archlab-Wallpapers/walls/minmo.png",
+    "sort_mode": "name_asc",
+    "thumb_size": 260,
+    "colorize_recent": [
+      "#5CD3AD",
+      "#3C8BC0",
+      "#C0B448",
+      "#C04854",
+      "#B1323E",
+      "#337C9B",
+      "#A51D2D",
+      "#272730",
+      "#4F4141",
+      "#1A1A33",
+      "#3048A8"
+    ],
+    "colorize_strength": 65,
+    "colorized_tag_color": "#1482C8",
+    "colorized_badge_color": "#1482C8",
+    "name_overrides": {}
+  }
+}
