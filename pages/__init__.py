@@ -63,3 +63,18 @@ def create_page_instance(page_id: str, app: "ArchCrafter2App") -> Optional[BaseP
     if page_cls:
         return page_cls()
     return None
+
+
+def get_row_to_page_map() -> dict[str, str]:
+    """Generate ROW_TO_PAGE map from page sidebar items."""
+    row_to_page = {}
+    for page_cls in get_all_pages().values():
+        for item in page_cls.get_sidebar_items():
+            row_id = item[0]  # First element is row_id
+            row_to_page[f"row_{row_id}"] = page_cls.id
+    return row_to_page
+
+
+def get_page_to_row_map() -> dict[str, str]:
+    """Generate PAGE_TO_ROW map (reverse of ROW_TO_PAGE)."""
+    return {v: k for k, v in get_row_to_page_map().items()}

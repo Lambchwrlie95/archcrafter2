@@ -10,7 +10,9 @@ class CursorThemesPage(BasePage):
 
     @staticmethod
     def get_sidebar_items():
-        return []
+        return [
+            ("cursors", "Cursors", "input-mouse-symbolic", "Cursor theme selection"),
+        ]
 
     def build(self, app, builder):
         widget = builder.get_object("page_cursor_themes")

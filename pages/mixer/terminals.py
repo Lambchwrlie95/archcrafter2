@@ -10,7 +10,14 @@ class TerminalsPage(BasePage):
 
     @staticmethod
     def get_sidebar_items():
-        return []
+        return [
+            (
+                "terminals",
+                "Terminals",
+                "utilities-terminal-symbolic",
+                "Terminal presets",
+            ),
+        ]
 
     def build(self, app, builder):
         widget = builder.get_object("page_terminals")

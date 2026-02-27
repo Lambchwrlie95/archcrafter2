@@ -10,7 +10,9 @@ class PanelsPage(BasePage):
 
     @staticmethod
     def get_sidebar_items():
-        return []
+        return [
+            ("panels", "Panels", "transform-scale-symbolic", "Polybar/Tint2 panels"),
+        ]
 
     def build(self, app, builder):
         widget = builder.get_object("page_bar")

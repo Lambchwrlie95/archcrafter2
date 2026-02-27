@@ -23,7 +23,7 @@ from backend import (
     WindowThemeService,
     detect_external_tools,
 )
-from pages import create_page_instance, get_all_pages
+from pages import create_page_instance, get_all_pages, get_row_to_page_map
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("GdkPixbuf", "2.0")
@@ -53,18 +53,13 @@ SIDEBAR_WIDTH_MIN = 0
 SIDEBAR_WIDTH_MAX = 347
 SIDEBAR_COLLAPSED_WIDTH = 52
 
-ROW_TO_PAGE = {
-    "row_wallpapers": "wallpapers",
-    "row_gtk_themes": "gtk_themes",
-    "row_window_themes": "window_themes",
-    "row_panels": "panels",
-    "row_jgmenu": "menu",
-    "row_terminals": "terminals",
-    "row_fetch": "fetch",
-    "row_icons": "icons",
-    "row_cursors": "cursors",
-    "row_more": "more",
-}
+ROW_TO_PAGE = {}  # Generated from pages
+
+
+def _build_row_to_page():
+    global ROW_TO_PAGE
+    ROW_TO_PAGE = get_row_to_page_map()
+
 
 MODE_SIDEBAR_ITEMS = {
     "builder": [
@@ -415,6 +410,7 @@ class ArchCrafter2App(Gtk.Application):
         self.gtk_theme_service = GtkThemeService(BASE_DIR, self.settings)
         self.interface_theme_service = InterfaceThemeService(BASE_DIR, self.settings)
 
+        _build_row_to_page()
         self.pages: dict[str, object] = {}
         self._init_page_registry()
 

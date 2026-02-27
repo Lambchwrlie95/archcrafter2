@@ -10,7 +10,14 @@ class GtkThemesPage(BasePage):
 
     @staticmethod
     def get_sidebar_items():
-        return []
+        return [
+            (
+                "gtk_themes",
+                "GTK Themes",
+                "preferences-desktop-theme-symbolic",
+                "GTK theme selection",
+            ),
+        ]
 
     def build(self, app, builder):
         widget = builder.get_object("page_gtk_themes")

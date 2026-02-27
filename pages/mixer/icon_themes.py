@@ -10,7 +10,14 @@ class IconThemesPage(BasePage):
 
     @staticmethod
     def get_sidebar_items():
-        return []
+        return [
+            (
+                "icons",
+                "Icons",
+                "preferences-desktop-icons-symbolic",
+                "Icon theme selection",
+            ),
+        ]
 
     def build(self, app, builder):
         widget = builder.get_object("page_icon_themes")

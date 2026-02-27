@@ -10,7 +10,9 @@ class MenuPage(BasePage):
 
     @staticmethod
     def get_sidebar_items():
-        return []
+        return [
+            ("menu", "Menu", "ac-jgmenu-symbolic", "jgmenu configuration"),
+        ]
 
     def build(self, app, builder):
         widget = builder.get_object("page_menu")

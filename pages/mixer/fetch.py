@@ -10,7 +10,9 @@ class FetchPage(BasePage):
 
     @staticmethod
     def get_sidebar_items():
-        return []
+        return [
+            ("fetch", "Fetch", "system-information-symbolic", "System fetch tools"),
+        ]
 
     def build(self, app, builder):
         widget = builder.get_object("page_fetch")

@@ -10,7 +10,9 @@ class WindowThemesPage(BasePage):
 
     @staticmethod
     def get_sidebar_items():
-        return []
+        return [
+            ("window_themes", "Window Themes", "window-new-symbolic", "Openbox themes"),
+        ]
 
     def build(self, app, builder):
         widget = builder.get_object("page_window_themes")

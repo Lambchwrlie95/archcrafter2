@@ -17,30 +17,6 @@ class WallpaperPage(BasePage):
                 "image-x-generic-symbolic",
                 "Manage wallpapers",
             ),
-            (
-                "gtk_themes",
-                "GTK Themes",
-                "preferences-desktop-theme-symbolic",
-                "GTK theme selection",
-            ),
-            ("window_themes", "Window Themes", "window-new-symbolic", "Openbox themes"),
-            (
-                "icons",
-                "Icons",
-                "preferences-desktop-icons-symbolic",
-                "Icon theme selection",
-            ),
-            ("cursors", "Cursors", "input-mouse-symbolic", "Cursor theme selection"),
-            ("panels", "Panels", "transform-scale-symbolic", "Polybar/Tint2 panels"),
-            ("menu", "Menu", "ac-jgmenu-symbolic", "jgmenu configuration"),
-            (
-                "terminals",
-                "Terminals",
-                "utilities-terminal-symbolic",
-                "Terminal presets",
-            ),
-            ("fetch", "Fetch", "system-information-symbolic", "System fetch tools"),
-            ("more", "More", "view-more-symbolic", "Additional tools"),
         ]
 
     def build(self, app, builder):
