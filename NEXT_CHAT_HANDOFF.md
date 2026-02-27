@@ -1,7 +1,7 @@
 # ArchCrafter2 - Full Handoff + Workflow Notes
 
 Updated: 2026-02-27
-Project root: `/home/lamb/.config/archcrafter2`
+Project root: `/home/lamb/.config/loom`
 
 ## 1) Project Intent
 ArchCrafter2 is the GTK3 + Glade recreation of an older GTK4 ArchCrafter UI.
@@ -212,16 +212,16 @@ Important `ui` keys:
 
 ## 13) Launch / Troubleshooting Commands
 Run app foreground:
-- `cd /home/lamb/.config/archcrafter2 && python3 main.py`
+- `cd /home/lamb/.config/loom && python3 main.py`
 
 Run app background:
-- `nohup python3 /home/lamb/.config/archcrafter2/main.py >/tmp/archcrafter2.log 2>&1 &`
+- `nohup python3 /home/lamb/.config/loom/main.py >/tmp/loom.log 2>&1 &`
 
 Stop app:
-- `pkill -f "/home/lamb/.config/archcrafter2/main.py"`
+- `pkill -f "/home/lamb/.config/loom/main.py"`
 
 Check running:
-- `pgrep -af "python3 /home/lamb/.config/archcrafter2/main.py|python3 main.py"`
+- `pgrep -af "python3 /home/lamb/.config/loom/main.py|python3 main.py"`
 
 If window exists but not focused:
 - `xdotool search --name ArchCrafter2`
@@ -253,3 +253,91 @@ If making commits later, prefer excluding `__pycache__` and avoid deleting user 
 - Validate every change.
 - Preserve Wallpaper behavior first.
 - Keep icon style and spacing consistent.
+
+## 17) Page Modularization Architecture (2026-02-27)
+
+### Overview
+The app now has a pluggable page architecture. Pages are auto-discovered from the `pages/` directory.
+
+### Directory Structure
+```
+pages/
+├── __init__.py      # Auto-discovery registry, get_all_pages(), get_row_to_page_map()
+├── base.py          # BasePage abstract class
+├── mixer/          # Theme mixer pages
+│   ├── wallpapers.py
+│   ├── gtk_themes.py
+│   ├── window_themes.py
+│   ├── icon_themes.py
+│   ├── cursor_themes.py
+│   ├── panels.py
+│   ├── menu.py
+│   ├── terminals.py
+│   ├── fetch.py
+│   └── more.py
+└── builder/
+    └── home.py
+
+ui_common/
+└── __init__.py     # Shared widget helpers
+```
+
+### How It Works
+1. `pages/__init__.py` auto-discovers all `BasePage` subclasses
+2. `ROW_TO_PAGE` is now auto-generated from page sidebar items
+3. Each page class provides:
+   - `id`: unique page identifier
+   - `get_sidebar_items()`: list of sidebar entries for that mode
+   - `build(app, builder)`: returns the GTK widget
+   - `on_activate(app)`: called when page becomes visible
+
+### Adding a New Page
+1. Create `pages/mixer/your_page.py`:
+```python
+from pages.base import BasePage
+
+class YourPage(BasePage):
+    id = "your_page"
+    title = "Your Title"
+    icon = "icon-name"
+    
+    @staticmethod
+    def get_sidebar_items():
+        return [("your_page", "Your Title", "icon-name", "Description")]
+    
+    def build(self, app, builder):
+        return builder.get_object("page_your_glade_id")
+    
+    def on_activate(self, app):
+        app.reload_your_feature()
+```
+2. It auto-appears in sidebar on next run - no main.py changes needed!
+
+### Current Status
+- Page infrastructure: DONE
+- Auto-discovery: DONE
+- ROW_TO_PAGE auto-generation: DONE
+- ui_common helpers: DONE
+- **FULL METHOD MIGRATION**: PENDING - page classes currently delegate to `app.reload_*()` methods in main.py
+
+### Full Migration (Optional Future Work)
+To fully isolate pages, migrate the actual logic from `main.py` methods into page classes. Example:
+- Move `reload_wallpapers()`, `_reload_wallpapers_thread()`, `_sorted_filtered_wallpapers()` from main.py into `pages/mixer/wallpapers.py`
+- This can be done incrementally, one page at a time
+
+### Testing
+```bash
+# Test page discovery
+python3 -c "from pages import get_all_pages; print(get_all_pages().keys())"
+
+# Test ROW_TO_PAGE mapping
+python3 -c "from pages import get_row_to_page_map; print(get_row_to_page_map())"
+
+# Run app
+python3 main.py
+```
+
+### Key Files
+- `pages/__init__.py` - Registry and auto-discovery
+- `pages/base.py` - BasePage class
+- `main.py` - Still contains most page logic (delegated via `app.reload_*()`)
