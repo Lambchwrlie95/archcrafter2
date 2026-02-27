@@ -1021,24 +1021,125 @@
                       </object>
                     </child>
                     <child>
-                      <object class="GtkScrolledWindow" id="scroll_gtk_themes">
+                      <object class="GtkBox" id="gtk_themes_content_box">
                         <property name="visible">True</property>
-                        <property name="can_focus">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="orientation">horizontal</property>
+                        <property name="spacing">16</property>
                         <property name="hexpand">True</property>
                         <property name="vexpand">True</property>
-                        <property name="shadow_type">none</property>
                         <child>
-                          <object class="GtkFlowBox" id="flowbox_gtk_themes">
+                          <object
+                                                        class="GtkScrolledWindow"
+                                                        id="scroll_gtk_themes"
+                                                    >
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="hexpand">True</property>
+                            <property name="vexpand">True</property>
+                            <property name="shadow_type">none</property>
+                            <child>
+                              <object
+                                                                class="GtkFlowBox"
+                                                                id="flowbox_gtk_themes"
+                                                            >
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="selection_mode">none</property>
+                                <property name="column_spacing">12</property>
+                                <property name="row_spacing">12</property>
+                                <property
+                                                                    name="min_children_per_line"
+                                                                >1</property>
+                                <property
+                                                                    name="max_children_per_line"
+                                                                >3</property>
+                              </object>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="expand">True</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkFrame" id="gtk_theme_preview_frame">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="selection_mode">none</property>
-                            <property name="column_spacing">12</property>
-                            <property name="row_spacing">12</property>
-                            <property name="min_children_per_line">1</property>
-                            <property name="max_children_per_line">6</property>
+                            <property name="label_xalign">0</property>
+                            <property
+                                                            name="label"
+                                                            translatable="yes"
+                                                        >Live Preview</property>
+                            <property name="shadow_type">none</property>
+                            <property name="width_request">380</property>
+                            <property name="vexpand">True</property>
+                            <child>
+                              <object
+                                                                class="GtkBox"
+                                                                id="gtk_theme_preview_container"
+                                                            >
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="orientation">vertical</property>
+                              </object>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">True</property>
+                        <property name="fill">True</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="gtk_themes_filter_bar">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="orientation">horizontal</property>
+                        <property name="spacing">10</property>
+                        <child>
+                          <object
+                                                        class="GtkSearchEntry"
+                                                        id="entry_gtk_themes_search"
+                                                    >
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property
+                                                            name="placeholder_text"
+                                                            translatable="yes"
+                                                        >Search themes...</property>
+                            <property name="width_chars">30</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object
+                                                        class="GtkComboBoxText"
+                                                        id="combo_gtk_themes_filter"
+                                                    >
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="active">0</property>
+                            <items>
+                              <item translatable="yes">All Types</item>
+                              <item translatable="yes">Light</item>
+                              <item translatable="yes">Dark</item>
+                            </items>
                           </object>
                         </child>
                       </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">2</property>
+                      </packing>
                     </child>
                   </object>
                   <packing>

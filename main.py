@@ -34,6 +34,10 @@ SORT_LABEL_TO_KEY = {
     "Oldest": "oldest",
 }
 
+# Sidebar should stay compact; do not allow expanding beyond this width.
+SIDEBAR_WIDTH_MIN = 220
+SIDEBAR_WIDTH_MAX = 347
+
 ROW_TO_PAGE = {
     "row_wallpapers": "wallpapers",
     "row_gtk_themes": "gtk_themes",
@@ -182,6 +186,7 @@ class ArchCrafter2App(Gtk.Application):
         }
         self._sidebar_width_save_source = None
         self._pending_sidebar_width = None
+        self._sidebar_width_cap = None
         self._gtk_theme_meta_by_name = {}
         self._icon_search_paths_registered = False
 
@@ -512,14 +517,49 @@ class ArchCrafter2App(Gtk.Application):
             sidebar_width = int(ui.get("sidebar_width", 260))
         except Exception:
             sidebar_width = 260
-        sidebar_width = max(220, min(520, sidebar_width))
+        sidebar_width = max(SIDEBAR_WIDTH_MIN, min(SIDEBAR_WIDTH_MAX, sidebar_width))
+        if self._sidebar_width_cap is None:
+            self._sidebar_width_cap = sidebar_width
+        sidebar_width = min(sidebar_width, int(self._sidebar_width_cap))
 
         self.main_paned.set_position(sidebar_width)
         self.main_paned.connect("notify::position", self.on_main_paned_position_changed)
         self.main_paned.show_all()
 
+    def _lock_sidebar_width_cap_from_current(self):
+        if self.main_paned is None:
+            return False
+
+        measured = 0
+        if self.sidebar_box is not None:
+            try:
+                measured = int(self.sidebar_box.get_allocated_width())
+            except Exception:
+                measured = 0
+        if measured <= 0:
+            try:
+                measured = int(self.main_paned.get_position())
+            except Exception:
+                measured = 0
+        if measured <= 0:
+            return False
+
+        self._sidebar_width_cap = max(SIDEBAR_WIDTH_MIN, measured)
+        if self.main_paned.get_position() > self._sidebar_width_cap:
+            self.main_paned.set_position(self._sidebar_width_cap)
+        return False
+
     def on_main_paned_position_changed(self, paned, _pspec):
-        self._pending_sidebar_width = max(220, min(520, int(paned.get_position())))
+        raw_pos = int(paned.get_position())
+        max_width = (
+            int(self._sidebar_width_cap)
+            if self._sidebar_width_cap is not None
+            else SIDEBAR_WIDTH_MAX
+        )
+        clamped = max(SIDEBAR_WIDTH_MIN, min(max_width, raw_pos))
+        if clamped != raw_pos:
+            paned.set_position(clamped)
+        self._pending_sidebar_width = clamped
         if self._sidebar_width_save_source is None:
             self._sidebar_width_save_source = GLib.timeout_add(
                 250, self._flush_sidebar_width_save
@@ -2249,7 +2289,6 @@ class ArchCrafter2App(Gtk.Application):
         self.scale_wallpaper_thumb_size = self.builder.get_object(
             "scale_wallpaper_thumb_size"
         )
-        self._ensure_wallpaper_bottom_bar()
 
         if self.switch_wallpaper_system_source is not None:
             self.switch_wallpaper_system_source.connect(
@@ -2617,6 +2656,7 @@ class ArchCrafter2App(Gtk.Application):
         self.init_window_themes_page()
         self.init_gtk_themes_page()
         self.window.present()
+        GLib.timeout_add(120, self._lock_sidebar_width_cap_from_current)
 
 
 def main():
