@@ -23,6 +23,7 @@ from backend import (
     WindowThemeService,
     detect_external_tools,
 )
+from pages import create_page_instance, get_all_pages
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("GdkPixbuf", "2.0")
@@ -286,9 +287,7 @@ MENU_PRESET_LIBRARY = (
         "tags": ("wayland", "compact", "apps"),
         "summary": "Lightweight Wayland launcher preset with clean list layout.",
         "command": "fuzzel",
-        "paths": (
-            str(Path.home() / ".config" / "fuzzel" / "fuzzel.ini"),
-        ),
+        "paths": (str(Path.home() / ".config" / "fuzzel" / "fuzzel.ini"),),
     },
     {
         "id": "wofi-dashboard",
@@ -330,9 +329,7 @@ MENU_PRESET_LIBRARY = (
         "tags": ("alt-tab", "workspace", "window"),
         "summary": "Window and workspace switcher with a searchable list.",
         "command": "rofi -show window",
-        "paths": (
-            str(Path.home() / ".config" / "rofi" / "window.rasi"),
-        ),
+        "paths": (str(Path.home() / ".config" / "rofi" / "window.rasi"),),
     },
 )
 
@@ -417,6 +414,9 @@ class ArchCrafter2App(Gtk.Application):
         self.window_theme_service = WindowThemeService(BASE_DIR, self.settings)
         self.gtk_theme_service = GtkThemeService(BASE_DIR, self.settings)
         self.interface_theme_service = InterfaceThemeService(BASE_DIR, self.settings)
+
+        self.pages: dict[str, object] = {}
+        self._init_page_registry()
 
         self.switch_wallpaper_system_source = None
         self.combo_wallpaper_fill_mode = None
@@ -582,6 +582,11 @@ class ArchCrafter2App(Gtk.Application):
             if Gtk.Buildable.get_name(row) == row_name:
                 self.sidebar_list.select_row(row)
                 break
+
+    def _init_page_registry(self) -> None:
+        """Initialize all page instances."""
+        for page_id in get_all_pages():
+            self.pages[page_id] = create_page_instance(page_id, self)
 
     def _build_mode_sidebar_list(self, mode: str) -> Gtk.ListBox:
         listbox = Gtk.ListBox()
@@ -857,12 +862,20 @@ class ArchCrafter2App(Gtk.Application):
         if parent is not None:
             parent.remove(self.button_sidebar_toggle)
         if self.sidebar_header_box is not None:
-            self.sidebar_header_box.pack_start(self.button_sidebar_toggle, False, False, 0)
+            self.sidebar_header_box.pack_start(
+                self.button_sidebar_toggle, False, False, 0
+            )
 
-        if self.sidebar_header_box is not None and self.sidebar_header_box.get_parent() is None:
+        if (
+            self.sidebar_header_box is not None
+            and self.sidebar_header_box.get_parent() is None
+        ):
             self.sidebar_box.pack_start(self.sidebar_header_box, False, False, 0)
 
-        if self.sidebar_scroller is not None and self.sidebar_scroller.get_parent() is not self.sidebar_box:
+        if (
+            self.sidebar_scroller is not None
+            and self.sidebar_scroller.get_parent() is not self.sidebar_box
+        ):
             current_parent = self.sidebar_scroller.get_parent()
             if current_parent is not None:
                 current_parent.remove(self.sidebar_scroller)
@@ -960,7 +973,7 @@ class ArchCrafter2App(Gtk.Application):
             # Sidebar can shrink left; content should keep priority.
             paned.child_set_property(self.sidebar_box, "shrink", True)
             paned.child_set_property(self.sidebar_box, "resize", False)
-            paned.child_set_property(self.content_box, "shrink", False)
+            paned.child_set_property(self.content_box, "shrink", True)
             paned.child_set_property(self.content_box, "resize", True)
             self.root_hbox.pack_start(paned, True, True, 0)
             self.main_paned = paned
@@ -972,7 +985,9 @@ class ArchCrafter2App(Gtk.Application):
             sidebar_width = int(ui.get("sidebar_width", 260))
         except (TypeError, ValueError):
             sidebar_width = 260
-        sidebar_width = max(SIDEBAR_COLLAPSED_WIDTH, min(SIDEBAR_WIDTH_MAX, sidebar_width))
+        sidebar_width = max(
+            SIDEBAR_COLLAPSED_WIDTH, min(SIDEBAR_WIDTH_MAX, sidebar_width)
+        )
         if self._sidebar_width_cap is None:
             # Keep a fixed right-side drag cap; do not lock to last saved width.
             self._sidebar_width_cap = SIDEBAR_WIDTH_MAX
@@ -1018,7 +1033,8 @@ class ArchCrafter2App(Gtk.Application):
         if is_open:
             self.sidebar_scroller.show()
             restore = max(
-                SIDEBAR_COLLAPSED_WIDTH + 24, min(SIDEBAR_WIDTH_MAX, int(self._sidebar_restore_width))
+                SIDEBAR_COLLAPSED_WIDTH + 24,
+                min(SIDEBAR_WIDTH_MAX, int(self._sidebar_restore_width)),
             )
             self._suppress_sidebar_width_save = True
             self.main_paned.set_position(restore)
@@ -2518,7 +2534,9 @@ class ArchCrafter2App(Gtk.Application):
 
     def _build_bar_session_hint(self) -> str:
         if os.environ.get("WAYLAND_DISPLAY"):
-            return "Session hint: Wayland detected (Tint2/Polybar shown for compatibility)"
+            return (
+                "Session hint: Wayland detected (Tint2/Polybar shown for compatibility)"
+            )
         if os.environ.get("DISPLAY"):
             return "Session hint: X11 detected (Polybar and Tint2 are native fits)"
         return "Session hint: display session not detected, showing generic bar presets"
@@ -2631,7 +2649,11 @@ class ArchCrafter2App(Gtk.Application):
         ctx = label.get_style_context()
         ctx.remove_class("bar-status-ok")
         ctx.remove_class("bar-status-warn")
-        ctx.add_class("bar-status-ok" if binary_ok and running and config_ok and preset_ok else "bar-status-warn")
+        ctx.add_class(
+            "bar-status-ok"
+            if binary_ok and running and config_ok and preset_ok
+            else "bar-status-warn"
+        )
 
     def _capture_live_bar_preview_pixbuf(self) -> Optional[GdkPixbuf.Pixbuf]:
         if os.environ.get("WAYLAND_DISPLAY"):
@@ -2676,7 +2698,9 @@ class ArchCrafter2App(Gtk.Application):
         target_h = 42
         target_w = max(320, min(1440, int(src_w)))
         if pixbuf.get_width() != target_w or pixbuf.get_height() != target_h:
-            scaled = pixbuf.scale_simple(target_w, target_h, GdkPixbuf.InterpType.BILINEAR)
+            scaled = pixbuf.scale_simple(
+                target_w, target_h, GdkPixbuf.InterpType.BILINEAR
+            )
             if scaled is not None:
                 pixbuf = scaled
         return pixbuf
@@ -2843,10 +2867,16 @@ class ArchCrafter2App(Gtk.Application):
     def init_bar_page(self):
         assert self.builder is not None
         self.label_bar_runtime_hint = self.builder.get_object("label_bar_runtime_hint")
-        self.label_bar_polybar_status = self.builder.get_object("label_bar_polybar_status")
+        self.label_bar_polybar_status = self.builder.get_object(
+            "label_bar_polybar_status"
+        )
         self.label_bar_tint2_status = self.builder.get_object("label_bar_tint2_status")
-        self.image_bar_polybar_preview = self.builder.get_object("image_bar_polybar_preview")
-        self.image_bar_tint2_preview = self.builder.get_object("image_bar_tint2_preview")
+        self.image_bar_polybar_preview = self.builder.get_object(
+            "image_bar_polybar_preview"
+        )
+        self.image_bar_tint2_preview = self.builder.get_object(
+            "image_bar_tint2_preview"
+        )
         self.preview_polybar_strip = self.builder.get_object("preview_polybar_strip")
         self.preview_tint2_strip = self.builder.get_object("preview_tint2_strip")
         self.label_bar_polybar_preview_meta = self.builder.get_object(
@@ -2855,9 +2885,13 @@ class ArchCrafter2App(Gtk.Application):
         self.label_bar_tint2_preview_meta = self.builder.get_object(
             "label_bar_tint2_preview_meta"
         )
-        self.button_bar_polybar_apply = self.builder.get_object("button_bar_polybar_apply")
+        self.button_bar_polybar_apply = self.builder.get_object(
+            "button_bar_polybar_apply"
+        )
         self.button_bar_tint2_apply = self.builder.get_object("button_bar_tint2_apply")
-        self.button_bar_polybar_open = self.builder.get_object("button_bar_polybar_open")
+        self.button_bar_polybar_open = self.builder.get_object(
+            "button_bar_polybar_open"
+        )
         self.button_bar_tint2_open = self.builder.get_object("button_bar_tint2_open")
         button_polybar_copy = self.builder.get_object("button_bar_polybar_copy")
         button_tint2_copy = self.builder.get_object("button_bar_tint2_copy")
@@ -2871,13 +2905,17 @@ class ArchCrafter2App(Gtk.Application):
                 "clicked", self.on_bar_polybar_apply_clicked
             )
         if self.button_bar_tint2_apply is not None:
-            self.button_bar_tint2_apply.connect("clicked", self.on_bar_tint2_apply_clicked)
+            self.button_bar_tint2_apply.connect(
+                "clicked", self.on_bar_tint2_apply_clicked
+            )
         if self.button_bar_polybar_open is not None:
             self.button_bar_polybar_open.connect(
                 "clicked", self.on_bar_polybar_open_clicked
             )
         if self.button_bar_tint2_open is not None:
-            self.button_bar_tint2_open.connect("clicked", self.on_bar_tint2_open_clicked)
+            self.button_bar_tint2_open.connect(
+                "clicked", self.on_bar_tint2_open_clicked
+            )
         if button_polybar_copy is not None:
             button_polybar_copy.connect("clicked", self.on_bar_polybar_copy_clicked)
             button_polybar_copy.set_tooltip_text(str(polybar_path))
@@ -2962,7 +3000,9 @@ class ArchCrafter2App(Gtk.Application):
                 config_dir.mkdir(parents=True, exist_ok=True)
                 self._show_message(f"Created {title} config folder")
             except Exception as exc:
-                self._show_message(f"{title} config folder not found: {config_dir} ({exc})")
+                self._show_message(
+                    f"{title} config folder not found: {config_dir} ({exc})"
+                )
                 return
 
         opener = shutil.which("xdg-open")
@@ -3137,7 +3177,12 @@ class ArchCrafter2App(Gtk.Application):
 
             if idx == 1:
                 self._rounded_rect(
-                    cr, 10.0, y, max(18.0, min(8.0 + w * 0.06, w - 20.0)), row_h - 4.0, 4.0
+                    cr,
+                    10.0,
+                    y,
+                    max(18.0, min(8.0 + w * 0.06, w - 20.0)),
+                    row_h - 4.0,
+                    4.0,
                 )
                 r, g, b = self._hex_to_rgb(accent)
                 cr.set_source_rgba(r, g, b, 0.85)
@@ -3162,11 +3207,17 @@ class ArchCrafter2App(Gtk.Application):
         installed = self._menu_engine_available(str(preset.get("engine", "")))
         runtime_ok = self._menu_runtime_compatible(str(preset.get("session", "both")))
         state_text = "installed" if installed else "not installed"
-        runtime_text = "runtime ok" if runtime_ok else self._menu_runtime_note(str(preset.get("session", "both")))
+        runtime_text = (
+            "runtime ok"
+            if runtime_ok
+            else self._menu_runtime_note(str(preset.get("session", "both")))
+        )
         tags = self._menu_collect_tags(preset)
 
         if self.label_menu_preview_title is not None:
-            self.label_menu_preview_title.set_text(str(preset.get("name", "Menu Preset")))
+            self.label_menu_preview_title.set_text(
+                str(preset.get("name", "Menu Preset"))
+            )
         if self.label_menu_preview_meta is not None:
             self.label_menu_preview_meta.set_text(
                 "Engine: "
@@ -3202,7 +3253,9 @@ class ArchCrafter2App(Gtk.Application):
 
         purpose_filter = "all"
         if self.combo_menu_purpose_filter is not None:
-            purpose_filter = str(self.combo_menu_purpose_filter.get_active_id() or "all")
+            purpose_filter = str(
+                self.combo_menu_purpose_filter.get_active_id() or "all"
+            )
 
         installed_only = (
             self.check_menu_installed_only is not None
@@ -3219,7 +3272,9 @@ class ArchCrafter2App(Gtk.Application):
             engine = str(preset.get("engine", "")).strip().lower()
             purpose = str(preset.get("purpose", "")).strip().lower()
             installed = self._menu_engine_available(engine)
-            runtime_ok = self._menu_runtime_compatible(str(preset.get("session", "both")))
+            runtime_ok = self._menu_runtime_compatible(
+                str(preset.get("session", "both"))
+            )
             preset["installed"] = installed
             preset["runtime_ok"] = runtime_ok
 
@@ -3299,7 +3354,7 @@ class ArchCrafter2App(Gtk.Application):
 
         summary = Gtk.Label(label=str(preset.get("summary", "")))
         summary.set_xalign(0.0)
-        summary.set_wrap(True)
+        summary.set_line_wrap(True)
         summary.get_style_context().add_class("theme-subtitle")
         area.pack_start(summary, False, False, 0)
 
@@ -3319,16 +3374,18 @@ class ArchCrafter2App(Gtk.Application):
 
         command = Gtk.Label(label="Command: " + str(preset.get("command", "")))
         command.set_xalign(0.0)
-        command.set_wrap(True)
+        command.set_line_wrap(True)
         command.set_selectable(True)
         command.get_style_context().add_class("menu-command-label")
         area.pack_start(command, False, False, 0)
 
         paths = preset.get("paths", ())
         if paths:
-            path_label = Gtk.Label(label="Files: " + "  |  ".join([str(p) for p in paths]))
+            path_label = Gtk.Label(
+                label="Files: " + "  |  ".join([str(p) for p in paths])
+            )
             path_label.set_xalign(0.0)
-            path_label.set_wrap(True)
+            path_label.set_line_wrap(True)
             path_label.set_selectable(True)
             path_label.get_style_context().add_class("theme-subtitle")
             area.pack_start(path_label, False, False, 0)
@@ -3372,7 +3429,9 @@ class ArchCrafter2App(Gtk.Application):
         self.reload_menu_presets()
 
     def on_menu_import_clicked(self, _button):
-        self._show_message("Menu importer scaffold ready. Next: file picker + preset manifest.")
+        self._show_message(
+            "Menu importer scaffold ready. Next: file picker + preset manifest."
+        )
 
     def on_menu_open_builder_clicked(self, _button):
         self._open_builder_menu_workspace()
@@ -3427,7 +3486,7 @@ class ArchCrafter2App(Gtk.Application):
 
             summary = Gtk.Label(label=str(preset.get("summary", "")))
             summary.set_xalign(0.0)
-            summary.set_wrap(True)
+            summary.set_line_wrap(True)
             summary.get_style_context().add_class("theme-subtitle")
             card.pack_start(summary, False, False, 0)
 
@@ -3440,7 +3499,9 @@ class ArchCrafter2App(Gtk.Application):
             card.pack_start(tags_row, False, False, 0)
 
             status_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-            status_text = "Installed" if bool(preset.get("installed", False)) else "Missing"
+            status_text = (
+                "Installed" if bool(preset.get("installed", False)) else "Missing"
+            )
             status_badge = Gtk.Label(label=status_text.upper())
             status_badge.get_style_context().add_class("theme-type-badge")
             if bool(preset.get("installed", False)):
@@ -3449,7 +3510,9 @@ class ArchCrafter2App(Gtk.Application):
                 status_badge.get_style_context().add_class("menu-status-warn")
             status_row.pack_start(status_badge, False, False, 0)
 
-            runtime_note = Gtk.Label(label=self._menu_runtime_note(str(preset.get("session", "both"))))
+            runtime_note = Gtk.Label(
+                label=self._menu_runtime_note(str(preset.get("session", "both")))
+            )
             runtime_note.get_style_context().add_class("theme-subtitle")
             runtime_note.set_xalign(0.0)
             status_row.pack_start(runtime_note, False, False, 0)
@@ -3459,18 +3522,24 @@ class ArchCrafter2App(Gtk.Application):
             preview_btn = Gtk.Button(label="Preview")
             preview_btn.get_style_context().add_class("theme-apply-button")
             preview_btn.get_style_context().add_class("theme-secondary-button")
-            preview_btn.connect("clicked", self.on_menu_card_preview_clicked, str(preset.get("id", "")))
+            preview_btn.connect(
+                "clicked", self.on_menu_card_preview_clicked, str(preset.get("id", ""))
+            )
             actions.pack_start(preview_btn, True, True, 0)
 
             copy_btn = Gtk.Button(label="Copy Cmd")
             copy_btn.get_style_context().add_class("theme-apply-button")
             copy_btn.get_style_context().add_class("theme-secondary-button")
-            copy_btn.connect("clicked", self.on_menu_card_copy_clicked, str(preset.get("id", "")))
+            copy_btn.connect(
+                "clicked", self.on_menu_card_copy_clicked, str(preset.get("id", ""))
+            )
             actions.pack_start(copy_btn, True, True, 0)
 
             builder_btn = Gtk.Button(label="Builder")
             builder_btn.get_style_context().add_class("theme-apply-button")
-            builder_btn.connect("clicked", self.on_menu_card_builder_clicked, str(preset.get("id", "")))
+            builder_btn.connect(
+                "clicked", self.on_menu_card_builder_clicked, str(preset.get("id", ""))
+            )
             actions.pack_start(builder_btn, True, True, 0)
             card.pack_start(actions, False, False, 0)
 
@@ -3505,7 +3574,9 @@ class ArchCrafter2App(Gtk.Application):
             if self.label_menu_preview_title is not None:
                 self.label_menu_preview_title.set_text("No presets match this filter")
             if self.label_menu_preview_meta is not None:
-                self.label_menu_preview_meta.set_text("Try a wider search or disable Installed-only mode.")
+                self.label_menu_preview_meta.set_text(
+                    "Try a wider search or disable Installed-only mode."
+                )
             if self.label_menu_preview_tags is not None:
                 self.label_menu_preview_tags.set_text("Tags: -")
             if self.label_menu_preview_command is not None:
@@ -3520,21 +3591,39 @@ class ArchCrafter2App(Gtk.Application):
     def init_menu_page(self):
         assert self.builder is not None
         self.entry_menu_search = self.builder.get_object("entry_menu_search")
-        self.combo_menu_engine_filter = self.builder.get_object("combo_menu_engine_filter")
-        self.combo_menu_purpose_filter = self.builder.get_object("combo_menu_purpose_filter")
+        self.combo_menu_engine_filter = self.builder.get_object(
+            "combo_menu_engine_filter"
+        )
+        self.combo_menu_purpose_filter = self.builder.get_object(
+            "combo_menu_purpose_filter"
+        )
         self.combo_menu_sort = self.builder.get_object("combo_menu_sort")
-        self.check_menu_installed_only = self.builder.get_object("check_menu_installed_only")
+        self.check_menu_installed_only = self.builder.get_object(
+            "check_menu_installed_only"
+        )
         self.flowbox_menu_presets = self.builder.get_object("flowbox_menu_presets")
         self.label_menu_count = self.builder.get_object("label_menu_count")
-        self.label_menu_preview_title = self.builder.get_object("label_menu_preview_title")
-        self.label_menu_preview_meta = self.builder.get_object("label_menu_preview_meta")
-        self.label_menu_preview_tags = self.builder.get_object("label_menu_preview_tags")
-        self.label_menu_preview_command = self.builder.get_object("label_menu_preview_command")
+        self.label_menu_preview_title = self.builder.get_object(
+            "label_menu_preview_title"
+        )
+        self.label_menu_preview_meta = self.builder.get_object(
+            "label_menu_preview_meta"
+        )
+        self.label_menu_preview_tags = self.builder.get_object(
+            "label_menu_preview_tags"
+        )
+        self.label_menu_preview_command = self.builder.get_object(
+            "label_menu_preview_command"
+        )
         self.menu_preview_area = self.builder.get_object("menu_preview_area")
         button_menu_import = self.builder.get_object("button_menu_import")
         button_menu_open_builder = self.builder.get_object("button_menu_open_builder")
-        self.button_menu_copy_command = self.builder.get_object("button_menu_copy_command")
-        self.button_menu_clone_builder = self.builder.get_object("button_menu_clone_builder")
+        self.button_menu_copy_command = self.builder.get_object(
+            "button_menu_copy_command"
+        )
+        self.button_menu_clone_builder = self.builder.get_object(
+            "button_menu_clone_builder"
+        )
 
         if self.combo_menu_engine_filter is not None:
             self.combo_menu_engine_filter.remove_all()
@@ -3542,7 +3631,9 @@ class ArchCrafter2App(Gtk.Application):
             for engine in MENU_ENGINE_BINARIES.keys():
                 self.combo_menu_engine_filter.append(engine, engine.upper())
             self.combo_menu_engine_filter.set_active_id("all")
-            self.combo_menu_engine_filter.connect("changed", self.on_menu_filters_changed)
+            self.combo_menu_engine_filter.connect(
+                "changed", self.on_menu_filters_changed
+            )
 
         if self.combo_menu_purpose_filter is not None:
             self.combo_menu_purpose_filter.remove_all()
@@ -3550,7 +3641,9 @@ class ArchCrafter2App(Gtk.Application):
             for purpose in ("launcher", "power", "scripts", "windows", "clipboard"):
                 self.combo_menu_purpose_filter.append(purpose, purpose.title())
             self.combo_menu_purpose_filter.set_active_id("all")
-            self.combo_menu_purpose_filter.connect("changed", self.on_menu_filters_changed)
+            self.combo_menu_purpose_filter.connect(
+                "changed", self.on_menu_filters_changed
+            )
 
         if self.combo_menu_sort is not None:
             self.combo_menu_sort.remove_all()
@@ -3564,16 +3657,24 @@ class ArchCrafter2App(Gtk.Application):
         if self.entry_menu_search is not None:
             self.entry_menu_search.connect("changed", self.on_menu_filters_changed)
         if self.check_menu_installed_only is not None:
-            self.check_menu_installed_only.connect("toggled", self.on_menu_filters_changed)
+            self.check_menu_installed_only.connect(
+                "toggled", self.on_menu_filters_changed
+            )
         if button_menu_import is not None:
             button_menu_import.connect("clicked", self.on_menu_import_clicked)
         if button_menu_open_builder is not None:
-            button_menu_open_builder.connect("clicked", self.on_menu_open_builder_clicked)
+            button_menu_open_builder.connect(
+                "clicked", self.on_menu_open_builder_clicked
+            )
         if self.button_menu_copy_command is not None:
-            self.button_menu_copy_command.connect("clicked", self.on_menu_copy_command_clicked)
+            self.button_menu_copy_command.connect(
+                "clicked", self.on_menu_copy_command_clicked
+            )
             self.button_menu_copy_command.set_sensitive(False)
         if self.button_menu_clone_builder is not None:
-            self.button_menu_clone_builder.connect("clicked", self.on_menu_clone_builder_clicked)
+            self.button_menu_clone_builder.connect(
+                "clicked", self.on_menu_clone_builder_clicked
+            )
             self.button_menu_clone_builder.set_sensitive(False)
         if self.menu_preview_area is not None:
             self.menu_preview_area.connect("draw", self._draw_menu_preview_area)
@@ -3816,7 +3917,11 @@ class ArchCrafter2App(Gtk.Application):
         return None
 
     def _build_icon_theme_preview_tile(
-        self, icon_theme: Gtk.IconTheme, icon_name: str, size: int, compact: bool = False
+        self,
+        icon_theme: Gtk.IconTheme,
+        icon_name: str,
+        size: int,
+        compact: bool = False,
     ) -> Gtk.Box:
         slot = Gtk.Box()
         slot.set_halign(Gtk.Align.FILL)
@@ -3912,7 +4017,9 @@ class ArchCrafter2App(Gtk.Application):
 
         return surface
 
-    def _build_gtk_theme_card_mockup(self, theme, allow_render: bool = False) -> Gtk.Box:
+    def _build_gtk_theme_card_mockup(
+        self, theme, allow_render: bool = False
+    ) -> Gtk.Box:
         mini = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         mini.get_style_context().add_class("gtk-theme-mini-preview")
         mini.set_margin_top(2)
@@ -4284,7 +4391,9 @@ class ArchCrafter2App(Gtk.Application):
             self.flowbox_icon_themes.set_max_children_per_line(4)
 
         if self.entry_icons_search is not None:
-            self.entry_icons_search.connect("changed", lambda _w: self.reload_icon_themes())
+            self.entry_icons_search.connect(
+                "changed", lambda _w: self.reload_icon_themes()
+            )
 
         self.reload_icon_themes()
 
@@ -4400,7 +4509,9 @@ class ArchCrafter2App(Gtk.Application):
             apply_btn.get_style_context().add_class("icon-theme-action-button")
             apply_btn.set_always_show_image(True)
             apply_btn.set_image(
-                Gtk.Image.new_from_icon_name("object-select-symbolic", Gtk.IconSize.MENU)
+                Gtk.Image.new_from_icon_name(
+                    "object-select-symbolic", Gtk.IconSize.MENU
+                )
             )
             apply_btn.connect("clicked", self.on_icon_theme_apply_clicked, theme.name)
             actions.pack_start(apply_btn, False, False, 0)
@@ -4565,9 +4676,7 @@ class ArchCrafter2App(Gtk.Application):
             apply_btn = Gtk.Button(label="Apply")
             apply_btn.get_style_context().add_class("suggested-action")
             apply_btn.get_style_context().add_class("theme-apply-button")
-            apply_btn.connect(
-                "clicked", self.on_cursor_theme_apply_clicked, theme.name
-            )
+            apply_btn.connect("clicked", self.on_cursor_theme_apply_clicked, theme.name)
             card.pack_start(apply_btn, False, False, 0)
 
             child = Gtk.FlowBoxChild()
@@ -4607,12 +4716,29 @@ class ArchCrafter2App(Gtk.Application):
             tools = detect_external_tools()
             for name, path in tools.items():
                 status = "Installed" if path else "Missing"
-                self._add_settings_row(self.list_diagnostics, name.replace("_", " ").title(), status, path or "N/A")
+                self._add_settings_row(
+                    self.list_diagnostics,
+                    name.replace("_", " ").title(),
+                    status,
+                    path or "N/A",
+                )
 
         if self.list_paths:
-            self._add_settings_row(self.list_paths, "Settings File", "JSON", str(self.settings.settings_file))
-            self._add_settings_row(self.list_paths, "Cache Directory", "Folder", str(self.cache_dir))
-            self._add_settings_row(self.list_paths, "Library Directory", "Folder", str(BASE_DIR / "library"))
+            self._add_settings_row(
+                self.list_paths,
+                "Settings File",
+                "JSON",
+                str(self.settings.settings_file),
+            )
+            self._add_settings_row(
+                self.list_paths, "Cache Directory", "Folder", str(self.cache_dir)
+            )
+            self._add_settings_row(
+                self.list_paths,
+                "Library Directory",
+                "Folder",
+                str(BASE_DIR / "library"),
+            )
 
         if self.btn_clear_cache:
             self.btn_clear_cache.connect("clicked", self.on_clear_cache_clicked)
@@ -4633,7 +4759,7 @@ class ArchCrafter2App(Gtk.Application):
         lbl_title = Gtk.Label(label=title)
         lbl_title.set_xalign(0)
         lbl_title.get_style_context().add_class("theme-title")
-        
+
         lbl_details = Gtk.Label(label=details)
         lbl_details.set_xalign(0)
         lbl_details.get_style_context().add_class("theme-subtitle")
@@ -4651,12 +4777,12 @@ class ArchCrafter2App(Gtk.Application):
             lbl_status.get_style_context().add_class("bar-status-warn")
         elif status.lower() == "installed":
             lbl_status.get_style_context().add_class("bar-status-ok")
-        
+
         status_box.pack_end(lbl_status, False, False, 0)
 
         box.pack_start(vbox, True, True, 0)
         box.pack_end(status_box, False, False, 0)
-        
+
         row.add(box)
         listbox.add(row)
         row.show_all()
@@ -4672,7 +4798,7 @@ class ArchCrafter2App(Gtk.Application):
                     except Exception:
                         pass
             GLib.idle_add(self._show_message, f"Cleared {count} cached files")
-        
+
         threading.Thread(target=clear_task, daemon=True).start()
 
     def on_reset_settings_clicked(self, _button):
@@ -4683,7 +4809,9 @@ class ArchCrafter2App(Gtk.Application):
             buttons=Gtk.ButtonsType.OK_CANCEL,
             text="Reset all settings?",
         )
-        dialog.format_secondary_text("This will revert all app preferences to defaults. This action cannot be undone.")
+        dialog.format_secondary_text(
+            "This will revert all app preferences to defaults. This action cannot be undone."
+        )
         response = dialog.run()
         dialog.destroy()
 
@@ -4922,7 +5050,9 @@ class ArchCrafter2App(Gtk.Application):
         footer.pack_start(spacer, True, True, 0)
 
         if self.scale_wallpaper_thumb_size is None:
-            scale = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 180.0, 420.0, 10.0)
+            scale = Gtk.Scale.new_with_range(
+                Gtk.Orientation.HORIZONTAL, 180.0, 420.0, 10.0
+            )
             scale.connect("value-changed", self.on_wallpaper_thumb_size_changed)
             self.scale_wallpaper_thumb_size = scale
 
