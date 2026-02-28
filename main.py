@@ -50,7 +50,7 @@ SORT_LABEL_TO_KEY = {
 # Sidebar should stay compact; do not allow expanding beyond this width.
 # Keep right-side cap, but allow collapsing left for more content space.
 SIDEBAR_WIDTH_MIN = 0
-SIDEBAR_WIDTH_MAX = 347
+SIDEBAR_WIDTH_MAX = 280
 SIDEBAR_COLLAPSED_WIDTH = 52
 
 ROW_TO_PAGE = {}  # Generated from pages
@@ -4917,14 +4917,14 @@ class ArchCrafter2App(Gtk.Application):
             )
 
         if self.wallpaper_flowbox is not None:
-            self.wallpaper_flowbox.set_column_spacing(10)
-            self.wallpaper_flowbox.set_row_spacing(12)
-            self.wallpaper_flowbox.set_margin_top(10)
-            self.wallpaper_flowbox.set_margin_bottom(10)
-            self.wallpaper_flowbox.set_margin_start(10)
-            self.wallpaper_flowbox.set_margin_end(10)
-            self.wallpaper_flowbox.set_min_children_per_line(1)
-            self.wallpaper_flowbox.set_max_children_per_line(3)
+            self.wallpaper_flowbox.set_column_spacing(8)
+            self.wallpaper_flowbox.set_row_spacing(8)
+            self.wallpaper_flowbox.set_margin_top(8)
+            self.wallpaper_flowbox.set_margin_bottom(8)
+            self.wallpaper_flowbox.set_margin_start(8)
+            self.wallpaper_flowbox.set_margin_end(8)
+            self.wallpaper_flowbox.set_min_children_per_line(2)
+            self.wallpaper_flowbox.set_max_children_per_line(4)
             self._update_wallpaper_grid_columns()
 
         # Grid-only mode: hide switcher and pin stack to grid.
