@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict
 
-from .settings import SettingsStore
-from .wallpapers import WallpaperService
-from .gtk_themes import GtkThemeService
-from .themes import WindowThemeService
-from .fetch import FetchService
 from .deps import detect_external_tools
+from .fetch import FetchService
+from .gtk_themes import GtkThemeService
+from .interface_themes import InterfaceThemeService
+from .settings import SettingsStore
+from .themes import WindowThemeService
+from .wallpapers import WallpaperService
 
 
 class ServiceContainer:
@@ -25,6 +26,7 @@ class ServiceContainer:
         self.wallpapers = WallpaperService(self.base_dir, self.settings)
         self.gtk_themes = GtkThemeService(self.base_dir, self.settings)
         self.window_themes = WindowThemeService(self.base_dir, self.settings)
+        self.interface_themes = InterfaceThemeService(self.base_dir, self.settings)
         self.fetch = FetchService(self.base_dir, self.settings)
         self.external_tools = detect_external_tools()
 
@@ -34,6 +36,7 @@ class ServiceContainer:
             "wallpapers": self.wallpapers,
             "gtk_themes": self.gtk_themes,
             "window_themes": self.window_themes,
+            "interface_themes": self.interface_themes,
             "fetch": self.fetch,
             "external_tools": self.external_tools,
         }

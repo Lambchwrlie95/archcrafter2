@@ -1,14 +1,56 @@
 """Wallpapers section page (moved from pages/mixer)."""
 
+import hashlib
+import math
+import threading
+import time
+from pathlib import Path
+from typing import Optional
+
+import gi
+gi.require_version("Gtk", "3.0")
+gi.require_version("GdkPixbuf", "2.0")
+from gi.repository import Gtk, Gdk, GdkPixbuf, GLib, Pango
+
 from pages.base import BasePage
 from pages import register_page
 
+SORT_LABEL_TO_KEY = {
+    "Name A-Z": "name_asc",
+    "Name Z-A": "name_desc",
+    "Newest": "newest",
+    "Oldest": "oldest",
+}
 
 @register_page
 class WallpaperPage(BasePage):
     id = "wallpapers"
     title = "Wallpapers"
     icon = "image-x-generic-symbolic"
+
+    def __init__(self):
+        super().__init__()
+        self.switch_wallpaper_system_source = None
+        self.combo_wallpaper_fill_mode = None
+        self.combo_wallpaper_sort = None
+        self.entry_wallpaper_search = None
+        self.chooser_wallpaper_folder = None
+        self.button_top_settings = None
+        self.label_wallpaper_folder = None
+        self.wallpaper_view_stack = None
+        self.wallpaper_view_switcher = None
+        self.wallpaper_grid_scroller = None
+        self.wallpaper_list_scroller = None
+        self.wallpaper_flowbox = None
+        self.wallpaper_listbox = None
+        self.label_wallpaper_count = None
+        self.wallpaper_controls_box = None
+        self.scale_wallpaper_thumb_size = None
+        self.wallpaper_footer_bar = None
+        self.wallpaper_footer_zoom_scale = None
+        self.wallpaper_source_picker = None
+        self.wallpaper_source_system_btn = None
+        self.wallpaper_source_custom_btn = None
 
     @staticmethod
     def get_sidebar_items():
@@ -22,10 +64,1646 @@ class WallpaperPage(BasePage):
         ]
 
     def build(self, app, builder):
+        self.app = app
         widget = builder.get_object("page_wallpapers")
         self.widget = widget
+        
+        self.switch_wallpaper_system_source = builder.get_object("switch_wallpaper_system_source")
+        self.combo_wallpaper_fill_mode = builder.get_object("combo_wallpaper_fill_mode")
+        self.combo_wallpaper_sort = builder.get_object("combo_wallpaper_sort")
+        self.entry_wallpaper_search = builder.get_object("entry_wallpaper_search")
+        self.chooser_wallpaper_folder = builder.get_object("chooser_wallpaper_folder")
+        self.button_top_settings = builder.get_object("button_top_settings")
+        self.label_wallpaper_folder = builder.get_object("label_wallpaper_folder")
+        self.wallpaper_view_stack = builder.get_object("wallpaper_view_stack")
+        self.wallpaper_view_switcher = builder.get_object("wallpaper_view_switcher")
+        self.wallpaper_grid_scroller = builder.get_object("wallpaper_grid_scroller")
+        self.wallpaper_list_scroller = builder.get_object("wallpaper_list_scroller")
+        self.wallpaper_flowbox = builder.get_object("wallpaper_flowbox")
+        self.wallpaper_listbox = builder.get_object("wallpaper_listbox")
+        self.label_wallpaper_count = builder.get_object("label_wallpaper_count")
+        self.wallpaper_controls_box = builder.get_object("wallpaper_controls_box")
+        self.scale_wallpaper_thumb_size = builder.get_object("scale_wallpaper_thumb_size")
+
+        if self.switch_wallpaper_system_source is not None:
+            self.switch_wallpaper_system_source.connect("notify::active", self.on_wallpaper_source_toggled)
+        if self.combo_wallpaper_fill_mode is not None:
+            self.combo_wallpaper_fill_mode.connect("changed", self.on_wallpaper_fill_mode_changed)
+        if self.combo_wallpaper_sort is not None:
+            self.combo_wallpaper_sort.connect("changed", self.on_wallpaper_sort_changed)
+        if self.entry_wallpaper_search is not None:
+            self.entry_wallpaper_search.connect("changed", self.on_wallpaper_search_changed)
+        if self.chooser_wallpaper_folder is not None:
+            self.chooser_wallpaper_folder.connect("selection-changed", self.on_wallpaper_folder_selected)
+        if self.button_top_settings is not None:
+            self.button_top_settings.connect("clicked", self.app.on_top_settings_clicked)
+        if self.scale_wallpaper_thumb_size is not None:
+            self.scale_wallpaper_thumb_size.connect("value-changed", self.on_wallpaper_thumb_size_changed)
+
+        if self.wallpaper_grid_scroller is not None:
+            self.wallpaper_grid_scroller.connect("size-allocate", self.on_wallpaper_grid_scroller_size_allocate)
+            self.wallpaper_grid_scroller.connect("scroll-event", self.on_wallpaper_zoom_scroll)
+        if self.wallpaper_list_scroller is not None:
+            self.wallpaper_list_scroller.connect("scroll-event", self.on_wallpaper_zoom_scroll)
+
+        if self.wallpaper_flowbox is not None:
+            self.wallpaper_flowbox.set_filter_func(self._wallpaper_flowbox_filter)
+        if self.wallpaper_listbox is not None:
+            self.wallpaper_listbox.set_filter_func(self._wallpaper_listbox_filter)
+
+        self._ensure_wallpaper_source_picker()
+        self._refine_wallpaper_controls_layout()
+        self._dock_wallpaper_count_footer()
+
+        self.sync_wallpaper_controls_from_settings()
+
         return widget
 
     def on_activate(self, app):
-        app.reload_wallpapers()
-        app.sync_wallpaper_controls_from_settings()
+        self.reload_wallpapers()
+        self.sync_wallpaper_controls_from_settings()
+
+    def _file_signature(self, path: Path):
+        return self.app.wallpaper_service._file_signature(path)
+
+    def _thumbnail_cache_path(self, image_path: Path, width: int, height: int):
+        sig_mtime, sig_size = self._file_signature(image_path)
+        try:
+            resolved = str(image_path.resolve())
+        except Exception:
+            resolved = str(image_path)
+        key = f"{resolved}|{width}x{height}|{sig_mtime}:{sig_size}"
+        digest = hashlib.sha1(key.encode("utf-8")).hexdigest()
+        return self.app.services.wallpapers.thumb_cache_dir / f"{digest}.png"
+
+    def _prune_thumbnail_cache(self, max_files: int = 5000):
+        try:
+            files = sorted(
+                self.app.services.wallpapers.thumb_cache_dir.glob("*.png"),
+                key=lambda p: p.stat().st_mtime,
+                reverse=True,
+            )
+        except Exception:
+            return
+        if len(files) <= max_files:
+            return
+        for old in files[max_files:]:
+            try:
+                old.unlink()
+            except Exception:
+                continue
+
+    # palette cache operations are now handled by WallpaperService
+    def _palette_cache_key(self, path: Path, count: int):
+        return self.app.wallpaper_service._palette_cache_key(path, count)
+
+    # persistence is handled by service; keep stubs for compatibility
+    def _load_palette_cache_from_disk(self):
+        return self.app.wallpaper_service._load_palette_cache_from_disk()
+
+    def _save_palette_cache_to_disk(self):
+        return self.app.wallpaper_service._save_palette_cache_to_disk()
+
+    def _maybe_flush_palette_cache(self):
+        return self.app.wallpaper_service._maybe_flush_palette_cache()
+
+    def _show_dependency_warning_once(self):
+        if self._dependency_warning_shown:
+            return False
+        self._dependency_warning_shown = True
+
+        tools = detect_external_tools()
+        missing = []
+        if not tools.get("nitrogen"):
+            missing.append("nitrogen (wallpaper apply)")
+        if not tools.get("magick_or_convert"):
+            missing.append("magick/convert (colorize)")
+        if not tools.get("gsettings"):
+            missing.append("gsettings (GTK theme apply)")
+        if not tools.get("openbox"):
+            missing.append("openbox (window theme apply)")
+
+        if not missing or self.app.window is None:
+            return False
+
+        dialog = Gtk.MessageDialog(
+            transient_for=self.app.window,
+            modal=True,
+            message_type=Gtk.MessageType.WARNING,
+            buttons=Gtk.ButtonsType.OK,
+            text="Some external tools are missing",
+        )
+        dialog.format_secondary_text(
+            "ArchCrafter2 will still run, but some actions are unavailable:\n\n- "
+            + "\n- ".join(missing)
+        )
+        dialog.run()
+        dialog.destroy()
+        return False
+
+    def _get_colorized_badge_css(self):
+        return self.app.wallpaper_service.get_colorized_badge_css()
+
+    def _ensure_css(self):
+        badge_bg, badge_text = self._get_colorized_badge_css()
+        provider = Gtk.CssProvider()
+        if APP_CSS_PATH.exists():
+            provider.load_from_path(str(APP_CSS_PATH))
+        else:
+            provider.load_from_data(b"")
+
+        badge_provider = Gtk.CssProvider()
+        badge_provider.load_from_data(
+            (
+                ".colorized-badge {"
+                f"background-color: {badge_bg};"
+                f"color: {badge_text};"
+                "}"
+            ).encode("utf-8")
+        )
+        screen = Gdk.Screen.get_default()
+        if screen is not None:
+            Gtk.StyleContext.add_provider_for_screen(
+                screen,
+                provider,
+                Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
+            )
+            Gtk.StyleContext.add_provider_for_screen(
+                screen,
+                badge_provider,
+                Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION + 1,
+            )
+
+    def _build_preview_pixbuf(
+        self, image_path: Path, max_w: int = 1500, max_h: int = 950
+    ):
+        pix = GdkPixbuf.Pixbuf.new_from_file(str(image_path))
+        w, h = pix.get_width(), pix.get_height()
+        if w <= 0 or h <= 0:
+            return pix
+        scale = min(max_w / w, max_h / h, 1.0)
+        if scale < 1.0:
+            tw, th = max(1, int(w * scale)), max(1, int(h * scale))
+            pix = pix.scale_simple(tw, th, GdkPixbuf.InterpType.BILINEAR)
+        return pix
+
+    def on_preview_window_destroy(self, _win):
+        self.app._preview_window = None
+
+    def on_wallpaper_preview_clicked(self, _button, path_str: str):
+        path = Path(path_str)
+        if not path.exists():
+            self.app._show_message("Preview failed: file missing")
+            return
+
+        if self.app._preview_window is not None:
+            try:
+                self.app._preview_window.destroy()
+            except Exception:
+                pass
+            self.app._preview_window = None
+
+        try:
+            pix = self._build_preview_pixbuf(path)
+            img = Gtk.Image.new_from_pixbuf(pix)
+        except Exception:
+            img = Gtk.Image.new_from_icon_name("image-missing", Gtk.IconSize.DIALOG)
+
+        win = Gtk.Window(title=f"Preview - {path.name}")
+        if self.app.window is not None:
+            win.set_transient_for(self.app.window)
+        win.set_default_size(1000, 700)
+
+        scroll = Gtk.ScrolledWindow()
+        scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        scroll.add(img)
+        win.add(scroll)
+
+        win.connect("destroy", self.on_preview_window_destroy)
+        self.app._preview_window = win
+        win.show_all()
+
+    def on_colorizer_preview_original_clicked(
+        self, _button, path_str: str, parent_dialog
+    ):
+        path = Path(path_str)
+        if not path.exists():
+            self.app._show_message("Preview failed: file missing")
+            return
+
+        try:
+            pix = self._build_preview_pixbuf(path)
+            img = Gtk.Image.new_from_pixbuf(pix)
+        except Exception:
+            img = Gtk.Image.new_from_icon_name("image-missing", Gtk.IconSize.DIALOG)
+
+        parent = parent_dialog if isinstance(parent_dialog, Gtk.Window) else self.app.window
+        dialog = Gtk.Dialog(
+            title=f"Preview - {path.name}", transient_for=parent, modal=True
+        )
+        dialog.add_button("Close", Gtk.ResponseType.CLOSE)
+        dialog.set_default_size(1000, 700)
+
+        area = dialog.get_content_area()
+        area.set_margin_top(8)
+        area.set_margin_bottom(8)
+        area.set_margin_start(8)
+        area.set_margin_end(8)
+
+        scroll = Gtk.ScrolledWindow()
+        scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        scroll.set_hexpand(True)
+        scroll.set_vexpand(True)
+        scroll.add(img)
+        area.pack_start(scroll, True, True, 0)
+
+        dialog.show_all()
+        dialog.run()
+        dialog.destroy()
+
+    def _clear_widget_children(self, widget):
+        for child in widget.get_children():
+            widget.remove(child)
+
+    def _get_thumbnail_pixbuf(self, image_path: Path, width: int, height: int):
+        cache_path = self._thumbnail_cache_path(image_path, width, height)
+        if cache_path.exists():
+            try:
+                return GdkPixbuf.Pixbuf.new_from_file(str(cache_path))
+            except Exception:
+                try:
+                    cache_path.unlink()
+                except Exception:
+                    pass
+
+        try:
+            orig = GdkPixbuf.Pixbuf.new_from_file(str(image_path))
+            orig_w = orig.get_width()
+            orig_h = orig.get_height()
+
+            target_ratio = width / height
+            orig_ratio = orig_w / orig_h
+
+            if orig_ratio > target_ratio:
+                scale_h = height
+                scale_w = int(height * orig_ratio)
+                x_offset = (scale_w - width) // 2
+                y_offset = 0
+            else:
+                scale_w = width
+                scale_h = int(width / orig_ratio)
+                x_offset = 0
+                y_offset = (scale_h - height) // 2
+
+            scaled = orig.scale_simple(scale_w, scale_h, GdkPixbuf.InterpType.BILINEAR)
+            cropped = scaled.new_subpixbuf(x_offset, y_offset, width, height)
+
+            try:
+                cropped.savev(str(cache_path), "png", ["compression"], ["6"])
+            except Exception:
+                pass
+            return cropped
+        except Exception:
+            return None
+
+    def _build_thumbnail(self, image_path: Path, width: int, height: int):
+        try:
+            pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(
+                str(image_path), width, height, True
+            )
+            return Gtk.Image.new_from_pixbuf(pixbuf)
+        except Exception:
+            fallback = Gtk.Image.new_from_icon_name(
+                "image-missing", Gtk.IconSize.DIALOG
+            )
+            fallback.set_size_request(width, height)
+            return fallback
+
+    def _draw_rounded_thumbnail(self, widget, cr, pixbuf, radius: float = 8.0):
+        alloc = widget.get_allocation()
+        w = float(max(1, alloc.width))
+        h = float(max(1, alloc.height))
+
+        self.app._rounded_rect(cr, 0.5, 0.5, max(1.0, w - 1.0), max(1.0, h - 1.0), radius)
+        cr.clip()
+
+        # Fill letterbox area so non-16:9 images still look intentional.
+        cr.set_source_rgb(0.08, 0.09, 0.10)
+        cr.paint()
+
+        if pixbuf is not None:
+            pw = pixbuf.get_width()
+            ph = pixbuf.get_height()
+            ox = (w - pw) / 2.0
+            oy = (h - ph) / 2.0
+            Gdk.cairo_set_source_pixbuf(cr, pixbuf, ox, oy)
+            cr.paint()
+
+        return False
+
+    def _build_rounded_thumbnail_widget(
+        self, pixbuf, width: int, height: int, radius: float = 8.0
+    ):
+        area = Gtk.DrawingArea()
+        area.set_size_request(width, height)
+        area.connect("draw", self._draw_rounded_thumbnail, pixbuf, radius)
+        return area
+
+    def _is_colorized_path(self, path: Path) -> bool:
+        return self.app.wallpaper_service.is_colorized_path(path)
+
+    def _base_wallpaper_display_name(self, entry):
+        clean_name = Path(entry.name).name
+        return self.app.wallpaper_service.get_display_name(entry.path, clean_name)
+
+    def _compose_wallpaper_display_name(self, entry, is_colorized: bool | None = None):
+        return self.app.wallpaper_service.compose_display_name(entry, is_colorized)
+
+    def _hex_to_rgb(self, color_hex: str):
+        value = color_hex.lstrip("#")
+        if len(value) != 6:
+            return 0.5, 0.5, 0.5
+        r = int(value[0:2], 16) / 255.0
+        g = int(value[2:4], 16) / 255.0
+        b = int(value[4:6], 16) / 255.0
+        return r, g, b
+
+    def _rgb_to_hex(self, r: float, g: float, b: float):
+        r = max(0, min(255, int(round(r * 255))))
+        g = max(0, min(255, int(round(g * 255))))
+        b = max(0, min(255, int(round(b * 255))))
+        return f"#{r:02x}{g:02x}{b:02x}"
+
+    def _mix_hex(self, base_hex: str, target_hex: str, ratio: float):
+        ratio = max(0.0, min(1.0, float(ratio)))
+        br, bg, bb = self.app._hex_to_rgb(base_hex)
+        tr, tg, tb = self.app._hex_to_rgb(target_hex)
+        rr = br + (tr - br) * ratio
+        gg = bg + (tg - bg) * ratio
+        bb2 = bb + (tb - bb) * ratio
+        return self._rgb_to_hex(rr, gg, bb2)
+
+    def _is_light_hex(self, color_hex: str) -> bool:
+        r, g, b = self.app._hex_to_rgb(color_hex)
+        lum = 0.2126 * r + 0.7152 * g + 0.0722 * b
+        return lum >= 0.56
+
+    def _rounded_rect(self, cr, x: float, y: float, w: float, h: float, radius: float):
+        r = max(0.0, min(radius, w / 2.0, h / 2.0))
+        cr.new_sub_path()
+        cr.arc(x + w - r, y + r, r, -math.pi / 2, 0)
+        cr.arc(x + w - r, y + h - r, r, 0, math.pi / 2)
+        cr.arc(x + r, y + h - r, r, math.pi / 2, math.pi)
+        cr.arc(x + r, y + r, r, math.pi, 3 * math.pi / 2)
+        cr.close_path()
+
+    def _draw_swatch(self, widget, cr, color_hex: str):
+        r, g, b = self.app._hex_to_rgb(color_hex)
+        alloc = widget.get_allocation()
+        x, y = 0.5, 0.5
+        w = max(1.0, alloc.width - 1.0)
+        h = max(1.0, alloc.height - 1.0)
+        radius = max(4.0, min(w, h) * 0.30)
+
+        self.app._rounded_rect(cr, x, y, w, h, radius)
+        cr.set_source_rgb(r, g, b)
+        cr.fill_preserve()
+        cr.set_source_rgba(0, 0, 0, 0.32)
+        cr.set_line_width(1.0)
+        cr.stroke()
+        return False
+
+    def on_swatch_pressed(self, _widget, _event, color_hex: str):
+        color = color_hex.upper()
+        clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
+        clipboard.set_text(color, -1)
+        self.app._show_message(f"Copied {color}")
+        return True
+
+    def _build_swatch_row(self, colors, swatch_size: int = 20, spacing: int = 3):
+        row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=spacing)
+        row.set_halign(Gtk.Align.START)
+        for color_hex in colors:
+            sw = Gtk.DrawingArea()
+            sw.set_size_request(swatch_size, swatch_size)
+            sw.connect("draw", self.app._draw_swatch, color_hex)
+
+            click_box = Gtk.EventBox()
+            click_box.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
+            click_box.set_tooltip_text(f"Click to copy {color_hex.upper()}")
+            click_box.connect("button-press-event", self.on_swatch_pressed, color_hex)
+            click_box.add(sw)
+
+            row.pack_start(click_box, False, False, 0)
+        return row
+
+    def _color_distance(self, a, b):
+        return math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2)
+
+    def _extract_palette(self, path: Path, count: int = 5):
+        return self.app.wallpaper_service.extract_palette(path, count)
+
+    def _build_similar_colors(self, base_colors):
+        return self.app.wallpaper_service.get_similar_colors(base_colors)
+
+    def _unique_colors(self, colors, limit: int | None = None):
+        unique = []
+        seen = set()
+        for c in colors:
+            cu = str(c).strip().upper()
+            if not cu.startswith("#"):
+                cu = f"#{cu}"
+            if len(cu) != 7:
+                continue
+            if cu in seen:
+                continue
+            seen.add(cu)
+            unique.append(cu)
+            if limit is not None and len(unique) >= limit:
+                break
+        return unique
+
+    def _build_color_theory_colors(self, base_colors):
+        return self.app.wallpaper_service.get_color_theory_colors(base_colors)
+
+    def _get_recent_colorize_swatches(self):
+        return self.app.wallpaper_service.get_recent_colorize_swatches()
+
+    def _record_colorize_swatch(self, color_hex: str):
+        return self.app.wallpaper_service.record_colorize_swatch(color_hex)
+
+    def _random_color(self):
+        return self.app.wallpaper_service._random_color()
+
+    def _get_colorize_strength(self) -> int:
+        return self.app.wallpaper_service.get_colorize_strength()
+
+    def _set_colorize_strength(self, value: int):
+        return self.app.wallpaper_service.set_colorize_strength(value)
+
+    def on_colorize_strength_changed(self, scale):
+        self._set_colorize_strength(int(round(scale.get_value())))
+
+    def _create_colorized_variant(
+        self, source_path: Path, color_hex: str, strength: int = 55
+    ) -> tuple[Optional[Path], Optional[str]]:
+        return self.app.wallpaper_service.create_colorized_variant(
+            source_path, color_hex, strength
+        )
+
+    def _apply_colorized_and_report(
+        self,
+        source_path: Path,
+        color_hex: str,
+        dialog=None,
+        message_prefix: str = "Applied colorized wallpaper",
+        close_on_success: bool = False,
+        strength: int | None = None,
+    ):
+        use_strength = (
+            self._get_colorize_strength()
+            if strength is None
+            else max(10, min(100, int(strength)))
+        )
+        variant, err = self._create_colorized_variant(
+            Path(source_path), color_hex, use_strength
+        )
+        if err or variant is None:
+            self.app._show_message(err or "Colorize failed")
+            return False
+
+        ok, message = self.app.wallpaper_service.apply_wallpaper(variant)
+        if ok:
+            pretty = str(color_hex).strip().upper()
+            self._record_colorize_swatch(pretty)
+            self.app._show_message(f"{message_prefix} {pretty}")
+            if close_on_success and dialog is not None:
+                dialog.destroy()
+            return True
+
+        self.app._show_message(message)
+        return False
+
+    def _rgba_to_hex(self, rgba: Gdk.RGBA):
+        r = max(0, min(255, int(round(rgba.red * 255))))
+        g = max(0, min(255, int(round(rgba.green * 255))))
+        b = max(0, min(255, int(round(rgba.blue * 255))))
+        return f"#{r:02x}{g:02x}{b:02x}"
+
+    def on_colorize_pick(
+        self,
+        _widget,
+        _event,
+        source_path: str,
+        color_hex: str,
+        dialog,
+        strength_scale=None,
+    ):
+        strength = None
+        if strength_scale is not None:
+            strength = int(round(strength_scale.get_value()))
+        self._apply_colorized_and_report(
+            Path(source_path),
+            color_hex,
+            dialog,
+            "Applied colorized wallpaper",
+            strength=strength,
+        )
+        return True
+
+    def on_colorize_chip_clicked(
+        self, _button, source_path: str, color_hex: str, dialog, strength_scale=None
+    ):
+        strength = None
+        if strength_scale is not None:
+            strength = int(round(strength_scale.get_value()))
+        self._apply_colorized_and_report(
+            Path(source_path),
+            color_hex,
+            dialog,
+            "Applied colorized wallpaper",
+            strength=strength,
+        )
+
+    def _build_colorize_chip_flow(
+        self, colors, source_path: str, dialog, strength_scale=None
+    ):
+        flow = Gtk.FlowBox()
+        flow.set_selection_mode(Gtk.SelectionMode.NONE)
+        flow.set_max_children_per_line(10)
+        flow.set_column_spacing(4)
+        flow.set_row_spacing(4)
+
+        for color_hex in self._unique_colors(colors, limit=None):
+            child = Gtk.FlowBoxChild()
+
+            sw = Gtk.DrawingArea()
+            sw.set_size_request(58, 34)
+            sw.connect("draw", self.app._draw_swatch, color_hex)
+            sw.get_style_context().add_class("colorize-swatch")
+
+            swatch_btn = Gtk.Button()
+            swatch_btn.set_relief(Gtk.ReliefStyle.NONE)
+            swatch_btn.get_style_context().add_class("colorize-chip-button")
+            swatch_btn.set_tooltip_text(f"Apply {color_hex}")
+            swatch_btn.connect(
+                "clicked",
+                self.on_colorize_chip_clicked,
+                source_path,
+                color_hex,
+                dialog,
+                strength_scale,
+            )
+            swatch_btn.add(sw)
+
+            child.add(swatch_btn)
+            flow.add(child)
+
+        return flow
+
+    def on_random_colorize_clicked(
+        self, _button, source_path: str, dialog, strength_scale=None
+    ):
+        color_hex = self._random_color()
+        strength = None
+        if strength_scale is not None:
+            strength = int(round(strength_scale.get_value()))
+        self._apply_colorized_and_report(
+            Path(source_path),
+            color_hex,
+            dialog,
+            "Applied random colorized wallpaper",
+            strength=strength,
+        )
+
+    def on_custom_color_changed(self, color_button, hex_entry):
+        color_hex = self._rgba_to_hex(color_button.get_rgba()).upper()
+        hex_entry.set_text(color_hex)
+
+    def on_copy_custom_hex_clicked(self, _button, hex_entry):
+        color = hex_entry.get_text().strip().upper()
+        if not color:
+            return
+        clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
+        clipboard.set_text(color, -1)
+        self.app._show_message(f"Copied {color}")
+
+    def on_apply_custom_color_clicked(
+        self,
+        _button,
+        source_path: str,
+        color_button,
+        hex_entry,
+        dialog,
+        strength_scale=None,
+    ):
+        color_hex = self._rgba_to_hex(color_button.get_rgba())
+        hex_entry.set_text(color_hex.upper())
+        strength = None
+        if strength_scale is not None:
+            strength = int(round(strength_scale.get_value()))
+        self._apply_colorized_and_report(
+            Path(source_path),
+            color_hex,
+            dialog,
+            "Applied custom colorized wallpaper",
+            strength=strength,
+        )
+
+    def on_wallpaper_colorize_clicked(self, _button, path_str: str):
+        src = Path(path_str)
+        if not src.exists():
+            self.app._show_message("Cannot colorize: file missing")
+            return
+
+        palette = self._extract_palette(src)
+        choices = self._build_similar_colors(palette)
+
+        dialog = Gtk.Dialog(
+            title=f"Colorize - {src.name}", transient_for=self.app.window, modal=True
+        )
+        dialog.add_button("Close", Gtk.ResponseType.CLOSE)
+        dialog.set_default_size(760, 460)
+
+        area = dialog.get_content_area()
+        area.set_spacing(12)
+        area.set_margin_top(12)
+        area.set_margin_bottom(12)
+        area.set_margin_start(12)
+        area.set_margin_end(12)
+
+        info = Gtk.Label(
+            label="Pick a swatch or use Custom Color wheel to colorize and apply"
+        )
+        info.set_xalign(0.0)
+        area.pack_start(info, False, False, 0)
+
+        strength_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        strength_label = Gtk.Label(label="Strength")
+        strength_label.set_xalign(0.0)
+        strength_scale = Gtk.Scale.new_with_range(
+            Gtk.Orientation.HORIZONTAL, 10, 100, 1
+        )
+        strength_scale.set_hexpand(True)
+        strength_scale.set_digits(0)
+        strength_scale.set_draw_value(True)
+        strength_scale.set_value(float(self._get_colorize_strength()))
+        strength_scale.connect("value-changed", self.on_colorize_strength_changed)
+        strength_row.pack_start(strength_label, False, False, 0)
+        strength_row.pack_start(strength_scale, True, True, 0)
+        area.pack_start(strength_row, False, False, 0)
+        recent_colors = self._get_recent_colorize_swatches()
+
+        notebook = Gtk.Notebook()
+        notebook.set_scrollable(True)
+        notebook.set_hexpand(True)
+        notebook.set_vexpand(True)
+
+        def add_color_tab(title: str, colors):
+            page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+            page.set_margin_top(6)
+            page.set_margin_bottom(6)
+            page.set_margin_start(6)
+            page.set_margin_end(6)
+
+            if colors:
+                scroller = Gtk.ScrolledWindow()
+                scroller.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+                scroller.set_min_content_height(210)
+                scroller.set_shadow_type(Gtk.ShadowType.NONE)
+                scroller.add(
+                    self._build_colorize_chip_flow(
+                        colors, str(src), dialog, strength_scale
+                    )
+                )
+                page.pack_start(scroller, True, True, 0)
+            else:
+                empty = Gtk.Label(label="No swatches yet")
+                empty.set_xalign(0.0)
+                page.pack_start(empty, True, True, 0)
+
+            notebook.append_page(page, Gtk.Label(label=title))
+
+        add_color_tab("Palette", choices)
+        add_color_tab("Recent", recent_colors)
+
+        area.pack_start(notebook, True, True, 0)
+
+        custom_frame = Gtk.Frame(label="Custom Color")
+        custom_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        custom_box.set_margin_top(8)
+        custom_box.set_margin_bottom(8)
+        custom_box.set_margin_start(8)
+        custom_box.set_margin_end(8)
+
+        color_button = Gtk.ColorButton()
+        color_button.set_use_alpha(False)
+        color_button.set_title("Pick custom color")
+        if palette:
+            rgba = Gdk.RGBA()
+            if rgba.parse(palette[0]):
+                color_button.set_rgba(rgba)
+
+        custom_hex = Gtk.Entry()
+        custom_hex.set_editable(False)
+        custom_hex.set_width_chars(9)
+        custom_hex.set_text(self._rgba_to_hex(color_button.get_rgba()).upper())
+
+        color_button.connect("color-set", self.on_custom_color_changed, custom_hex)
+
+        apply_custom_btn = Gtk.Button(label="Apply Custom")
+        apply_custom_btn.set_image(
+            Gtk.Image.new_from_icon_name(
+                "format-fill-color-symbolic", Gtk.IconSize.BUTTON
+            )
+        )
+        apply_custom_btn.set_always_show_image(True)
+        apply_custom_btn.connect(
+            "clicked",
+            self.on_apply_custom_color_clicked,
+            str(src),
+            color_button,
+            custom_hex,
+            dialog,
+            strength_scale,
+        )
+
+        copy_hex_btn = Gtk.Button(label="Copy Hex")
+        copy_hex_btn.set_image(
+            Gtk.Image.new_from_icon_name("edit-copy-symbolic", Gtk.IconSize.BUTTON)
+        )
+        copy_hex_btn.set_always_show_image(True)
+        copy_hex_btn.connect("clicked", self.on_copy_custom_hex_clicked, custom_hex)
+
+        custom_box.pack_start(color_button, False, False, 0)
+        custom_box.pack_start(custom_hex, False, False, 0)
+        custom_box.pack_start(copy_hex_btn, False, False, 0)
+        custom_box.pack_start(apply_custom_btn, False, False, 0)
+        custom_frame.add(custom_box)
+        area.pack_start(custom_frame, False, False, 0)
+
+        actions = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        random_btn = Gtk.Button(label="Randomize")
+        random_btn.set_image(
+            Gtk.Image.new_from_icon_name("view-refresh-symbolic", Gtk.IconSize.BUTTON)
+        )
+        random_btn.set_always_show_image(True)
+        random_btn.connect(
+            "clicked", self.on_random_colorize_clicked, str(src), dialog, strength_scale
+        )
+        preview_btn = Gtk.Button(label="Preview Original")
+        preview_btn.connect(
+            "clicked", self.on_colorizer_preview_original_clicked, str(src), dialog
+        )
+        actions.pack_start(random_btn, False, False, 0)
+        actions.pack_start(preview_btn, False, False, 0)
+        area.pack_start(actions, False, False, 0)
+
+        dialog.connect("response", lambda d, _r: d.destroy())
+        dialog.show_all()
+
+    def on_wallpaper_source_toggled(self, switch, _pspec):
+        if self.app._loading_wallpaper_state:
+            return
+        source = "system" if switch.get_active() else "custom"
+        self.app.wallpaper_service.set_source(source)
+        guard_prev = self.app._loading_wallpaper_state
+        self.app._loading_wallpaper_state = True
+        try:
+            if self.wallpaper_source_system_btn is not None:
+                self.wallpaper_source_system_btn.set_active(source == "system")
+            if self.wallpaper_source_custom_btn is not None:
+                self.wallpaper_source_custom_btn.set_active(source == "custom")
+        finally:
+            self.app._loading_wallpaper_state = guard_prev
+        is_custom = source == "custom"
+        if self.chooser_wallpaper_folder is not None:
+            self.chooser_wallpaper_folder.set_sensitive(is_custom)
+        if self.label_wallpaper_folder is not None:
+            self.label_wallpaper_folder.set_sensitive(is_custom)
+        self.reload_wallpapers()
+
+    def on_wallpaper_source_choice_toggled(self, button, source_name: str):
+        if self.app._loading_wallpaper_state:
+            return
+        if not button.get_active():
+            return
+        target_system = source_name == "system"
+        if self.switch_wallpaper_system_source is not None:
+            if self.switch_wallpaper_system_source.get_active() != target_system:
+                self.switch_wallpaper_system_source.set_active(target_system)
+            else:
+                # Keep behavior consistent even if state is unchanged.
+                self.on_wallpaper_source_toggled(
+                    self.switch_wallpaper_system_source, None
+                )
+
+    def on_wallpaper_fill_mode_changed(self, combo):
+        if self.app._loading_wallpaper_state:
+            return
+        value = combo.get_active_text()
+        if value:
+            self.app.wallpaper_service.set_fill_mode(value)
+
+    def on_wallpaper_sort_changed(self, combo):
+        if self.app._loading_wallpaper_state:
+            return
+        value = combo.get_active_text() or "Name A-Z"
+        self.app.wallpaper_service.set_sort_mode(SORT_LABEL_TO_KEY.get(value, "name_asc"))
+        self.reload_wallpapers()
+
+    def on_wallpaper_search_changed(self, _entry):
+        if self.app._loading_wallpaper_state:
+            return
+        self.reload_wallpapers()
+
+    def _queue_thumb_reload(self):
+        if self.app._thumb_size_reload_source is not None:
+            GLib.source_remove(self.app._thumb_size_reload_source)
+        self.app._thumb_size_reload_source = GLib.timeout_add(150, self._run_thumb_reload)
+
+    def _run_thumb_reload(self):
+        self.app._thumb_size_reload_source = None
+        self.reload_wallpapers()
+        return False
+
+    def on_wallpaper_thumb_size_changed(self, scale):
+        if self.app._loading_wallpaper_state:
+            return
+        size = int(round(scale.get_value()))
+        self._set_wallpaper_thumb_size(size)
+
+    def _set_wallpaper_thumb_size(self, size: int):
+        size = max(180, min(420, int(size)))
+        if size == self.app.thumb_width:
+            return
+        self.app.thumb_width = size
+        self._update_wallpaper_grid_columns()
+        self.app.wallpaper_service.set_thumb_size(size)
+        self._queue_thumb_reload()
+
+    def on_wallpaper_zoom_scroll(self, _widget, event):
+        if event is None:
+            return False
+
+        state = getattr(event, "state", 0)
+        if not (state & Gdk.ModifierType.CONTROL_MASK):
+            return False
+
+        step = 20
+        delta = 0
+        direction = getattr(event, "direction", Gdk.ScrollDirection.SMOOTH)
+        if direction == Gdk.ScrollDirection.UP:
+            delta = step
+        elif direction == Gdk.ScrollDirection.DOWN:
+            delta = -step
+        elif direction == Gdk.ScrollDirection.SMOOTH:
+            try:
+                _dx, dy = event.get_scroll_deltas()
+            except Exception:
+                dy = 0.0
+            if dy < -0.01:
+                delta = step
+            elif dy > 0.01:
+                delta = -step
+
+        if delta != 0:
+            self._set_wallpaper_thumb_size(self.app.thumb_width + delta)
+        return True
+
+    def on_wallpaper_folder_selected(self, chooser):
+        if self.app._loading_wallpaper_state:
+            return
+        folder = chooser.get_filename()
+        if not folder:
+            return
+
+        self.app.wallpaper_service.set_custom_dir(Path(folder))
+        if self.switch_wallpaper_system_source is not None:
+            if self.switch_wallpaper_system_source.get_active():
+                self.switch_wallpaper_system_source.set_active(False)
+            else:
+                self.reload_wallpapers()
+
+    def on_wallpaper_apply_clicked(self, _button, path_str: str):
+        ok, message = self.app.wallpaper_service.apply_wallpaper(Path(path_str))
+        self.app._show_message(message)
+        if not ok:
+            dialog = Gtk.MessageDialog(
+                transient_for=self.app.window,
+                modal=True,
+                message_type=Gtk.MessageType.ERROR,
+                buttons=Gtk.ButtonsType.OK,
+                text=message,
+            )
+            dialog.run()
+            dialog.destroy()
+
+    def on_wallpaper_name_activate(
+        self,
+        _widget,
+        event,
+        path_str: str,
+        label_widget=None,
+        is_colorized: bool = False,
+        fallback_name: str | None = None,
+    ):
+        if event is None:
+            return False
+        if getattr(event, "button", 0) != 1:
+            return False
+
+        event_type = getattr(event, "type", None)
+        double_press = getattr(Gdk.EventType, "_2BUTTON_PRESS", None)
+        if event_type not in (Gdk.EventType.BUTTON_PRESS, double_press):
+            return False
+
+        now_us = GLib.get_monotonic_time()
+        if now_us - self.app._last_name_edit_us < 300_000:
+            return True
+        self.app._last_name_edit_us = now_us
+
+        self.on_wallpaper_edit_name_clicked(
+            None, path_str, label_widget, is_colorized, fallback_name
+        )
+        return True
+
+    def on_wallpaper_edit_name_clicked(
+        self,
+        _button,
+        path_str: str,
+        label_widget=None,
+        is_colorized: bool = False,
+        fallback_name: str | None = None,
+    ):
+        path = Path(path_str)
+        if fallback_name is None or not str(fallback_name).strip():
+            fallback_name = path.name
+
+        current = self.app.wallpaper_service.get_display_name(path, fallback_name)
+
+        dialog = Gtk.Dialog(
+            title=f"Edit Name - {path.name}", transient_for=self.app.window, modal=True
+        )
+        dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
+        dialog.add_button("Reset", 1)
+        save_btn = dialog.add_button("Save", Gtk.ResponseType.OK)
+        save_btn.get_style_context().add_class("suggested-action")
+        dialog.set_default_size(420, 140)
+
+        area = dialog.get_content_area()
+        area.set_spacing(8)
+        area.set_margin_top(10)
+        area.set_margin_bottom(10)
+        area.set_margin_start(10)
+        area.set_margin_end(10)
+
+        hint = Gtk.Label(
+            label="Edit display name only (original filename stays unchanged)."
+        )
+        hint.set_xalign(0.0)
+        area.pack_start(hint, False, False, 0)
+
+        entry = Gtk.Entry()
+        entry.set_text(current)
+        entry.set_activates_default(True)
+        dialog.set_default_response(Gtk.ResponseType.OK)
+        area.pack_start(entry, False, False, 0)
+
+        dialog.show_all()
+        response = dialog.run()
+        new_name = entry.get_text()
+        dialog.destroy()
+
+        if response == Gtk.ResponseType.OK:
+            saved = self.app.wallpaper_service.set_display_name(path, new_name)
+            if not saved:
+                saved = fallback_name
+            message = f"Name updated: {saved}"
+        elif response == 1:
+            self.app.wallpaper_service.clear_display_name(path)
+            saved = fallback_name
+            message = f"Name reset: {saved}"
+        else:
+            return
+
+        if is_colorized and "(colorized)" not in saved.lower():
+            shown = f"{saved} (Colorized)"
+        else:
+            shown = saved
+
+        if label_widget is not None:
+            label_widget.set_text(shown)
+
+        self.app._show_message(message)
+
+    def on_wallpaper_delete_clicked(self, _button, path_str: str, flow_child=None):
+        path = Path(path_str)
+        if not path.exists():
+            self.app._show_message("Delete failed: file missing")
+            return
+
+        dialog = Gtk.MessageDialog(
+            transient_for=self.app.window,
+            modal=True,
+            message_type=Gtk.MessageType.QUESTION,
+            buttons=Gtk.ButtonsType.NONE,
+            text=f"Delete wallpaper '{path.name}'?",
+        )
+        dialog.format_secondary_text("This permanently removes the file from disk.")
+        dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
+        delete_btn = dialog.add_button("Delete", Gtk.ResponseType.OK)
+        delete_btn.get_style_context().add_class("destructive-action")
+
+        response = dialog.run()
+        dialog.destroy()
+        if response != Gtk.ResponseType.OK:
+            return
+
+        ok, message = self.app.wallpaper_service.delete_wallpaper(path)
+        if not ok:
+            self.app._show_message(message)
+            err = Gtk.MessageDialog(
+                transient_for=self.app.window,
+                modal=True,
+                message_type=Gtk.MessageType.ERROR,
+                buttons=Gtk.ButtonsType.OK,
+                text=message,
+            )
+            err.run()
+            err.destroy()
+            return
+
+        self.app.wallpaper_service.clear_display_name(path)
+        self.app._show_message(message)
+
+        if flow_child is not None and self.wallpaper_flowbox is not None:
+            try:
+                self.wallpaper_flowbox.remove(flow_child)
+                if self.label_wallpaper_count is not None:
+                    count = len(self.wallpaper_flowbox.get_children())
+                    self.label_wallpaper_count.set_text(f"{count} wallpapers")
+                return
+            except Exception:
+                pass
+
+        self.reload_wallpapers()
+
+    def on_wallpaper_card_hover(self, _widget, _event, target_widget, show: bool):
+        if show:
+            target_widget.show()
+        else:
+            target_widget.hide()
+        return False
+
+    def _make_theme_preview_strip(self, icon_names: list[str]):
+        row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        row.get_style_context().add_class("theme-preview-row")
+        for icon_name in icon_names:
+            icon = Gtk.Image.new_from_icon_name(icon_name, Gtk.IconSize.MENU)
+            icon.set_pixel_size(16)
+            row.pack_start(icon, False, False, 0)
+        return row
+
+    def init_wallpaper_page(self):
+        assert self.builder is not None
+        self.switch_wallpaper_system_source = self.builder.get_object(
+            "switch_wallpaper_system_source"
+        )
+        self.combo_wallpaper_fill_mode = self.builder.get_object(
+            "combo_wallpaper_fill_mode"
+        )
+        self.combo_wallpaper_sort = self.builder.get_object("combo_wallpaper_sort")
+        self.entry_wallpaper_search = self.builder.get_object("entry_wallpaper_search")
+        self.chooser_wallpaper_folder = self.builder.get_object(
+            "chooser_wallpaper_folder"
+        )
+        self.button_top_settings = self.builder.get_object("button_top_settings")
+        self.label_wallpaper_folder = self.builder.get_object("label_wallpaper_folder")
+        self.wallpaper_view_stack = self.builder.get_object("wallpaper_view_stack")
+        self.wallpaper_view_switcher = self.builder.get_object(
+            "wallpaper_view_switcher"
+        )
+        self.wallpaper_grid_scroller = self.builder.get_object(
+            "wallpaper_grid_scroller"
+        )
+        self.wallpaper_list_scroller = self.builder.get_object(
+            "wallpaper_list_scroller"
+        )
+        self.wallpaper_flowbox = self.builder.get_object("wallpaper_flowbox")
+        self.wallpaper_listbox = self.builder.get_object("wallpaper_listbox")
+        self.label_wallpaper_count = self.builder.get_object("label_wallpaper_count")
+        self.wallpaper_controls_box = self.builder.get_object("wallpaper_controls_box")
+        self.scale_wallpaper_thumb_size = self.builder.get_object(
+            "scale_wallpaper_thumb_size"
+        )
+
+        if self.switch_wallpaper_system_source is not None:
+            self.switch_wallpaper_system_source.connect(
+                "notify::active", self.on_wallpaper_source_toggled
+            )
+        if self.combo_wallpaper_fill_mode is not None:
+            self.combo_wallpaper_fill_mode.connect(
+                "changed", self.on_wallpaper_fill_mode_changed
+            )
+        if self.combo_wallpaper_sort is not None:
+            self.combo_wallpaper_sort.connect("changed", self.on_wallpaper_sort_changed)
+        if self.entry_wallpaper_search is not None:
+            self.entry_wallpaper_search.connect(
+                "changed", self.on_wallpaper_search_changed
+            )
+        if self.chooser_wallpaper_folder is not None:
+            self.chooser_wallpaper_folder.connect(
+                "file-set", self.on_wallpaper_folder_selected
+            )
+        if self.button_top_settings is not None:
+            self.button_top_settings.connect("clicked", self.on_top_settings_clicked)
+        if self.scale_wallpaper_thumb_size is not None:
+            self.scale_wallpaper_thumb_size.connect(
+                "value-changed", self.on_wallpaper_thumb_size_changed
+            )
+        if self.wallpaper_grid_scroller is not None:
+            self.wallpaper_grid_scroller.set_policy(
+                Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC
+            )
+            if hasattr(self.wallpaper_grid_scroller, "set_propagate_natural_width"):
+                self.wallpaper_grid_scroller.set_propagate_natural_width(False)
+            self.wallpaper_grid_scroller.connect(
+                "scroll-event", self.on_wallpaper_zoom_scroll
+            )
+            self.wallpaper_grid_scroller.connect(
+                "size-allocate", self.on_wallpaper_grid_scroller_size_allocate
+            )
+        if self.wallpaper_list_scroller is not None:
+            self.wallpaper_list_scroller.connect(
+                "scroll-event", self.on_wallpaper_zoom_scroll
+            )
+        if self.wallpaper_flowbox is not None:
+            self.wallpaper_flowbox.connect(
+                "scroll-event", self.on_wallpaper_zoom_scroll
+            )
+        if self.wallpaper_listbox is not None:
+            self.wallpaper_listbox.connect(
+                "scroll-event", self.on_wallpaper_zoom_scroll
+            )
+
+        if self.wallpaper_flowbox is not None:
+            self.wallpaper_flowbox.set_column_spacing(8)
+            self.wallpaper_flowbox.set_row_spacing(8)
+            self.wallpaper_flowbox.set_margin_top(8)
+            self.wallpaper_flowbox.set_margin_bottom(8)
+            self.wallpaper_flowbox.set_margin_start(8)
+            self.wallpaper_flowbox.set_margin_end(8)
+            self.wallpaper_flowbox.set_min_children_per_line(2)
+            self.wallpaper_flowbox.set_max_children_per_line(4)
+            self._update_wallpaper_grid_columns()
+
+        # Grid-only mode: hide switcher and pin stack to grid.
+        if self.wallpaper_view_switcher is not None:
+            self.wallpaper_view_switcher.hide()
+        if self.wallpaper_view_stack is not None:
+            self.wallpaper_view_stack.set_visible_child_name("grid")
+
+        self._ensure_wallpaper_source_picker()
+        self._refine_wallpaper_controls_layout()
+        self._dock_wallpaper_count_footer()
+        self.sync_wallpaper_controls_from_settings()
+        self.reload_wallpapers()
+
+    def _ensure_wallpaper_source_picker(self):
+        if self.wallpaper_source_picker is not None:
+            return
+
+        picker = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
+        picker.get_style_context().add_class("source-segmented")
+
+        system_btn = Gtk.RadioButton.new_with_label_from_widget(None, "System")
+        custom_btn = Gtk.RadioButton.new_with_label_from_widget(system_btn, "Custom")
+
+        for btn, edge in (
+            (system_btn, "mode-left"),
+            (custom_btn, "mode-right"),
+        ):
+            btn.set_relief(Gtk.ReliefStyle.NONE)
+            btn.set_mode(False)
+            btn.set_can_focus(True)
+            ctx = btn.get_style_context()
+            ctx.add_class("mode-link-btn")
+            ctx.add_class("source-choice-btn")
+            ctx.add_class(edge)
+            picker.pack_start(btn, False, False, 0)
+
+        system_btn.connect("toggled", self.on_wallpaper_source_choice_toggled, "system")
+        custom_btn.connect("toggled", self.on_wallpaper_source_choice_toggled, "custom")
+
+        picker.show_all()
+        self.wallpaper_source_picker = picker
+        self.wallpaper_source_system_btn = system_btn
+        self.wallpaper_source_custom_btn = custom_btn
+
+    def _refine_wallpaper_controls_layout(self):
+        box = self.wallpaper_controls_box
+        if box is None:
+            return
+        if bool(getattr(box, "_loom_refined_layout", False)):
+            return
+
+        row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        row.set_hexpand(True)
+        row.get_style_context().add_class("wallpaper-controls-row")
+
+        if self.entry_wallpaper_search is not None:
+            self.entry_wallpaper_search.set_hexpand(False)
+            self.entry_wallpaper_search.set_width_chars(14)
+            self.entry_wallpaper_search.set_size_request(170, -1)
+        if self.chooser_wallpaper_folder is not None:
+            self.chooser_wallpaper_folder.set_hexpand(False)
+            self.chooser_wallpaper_folder.set_size_request(220, -1)
+        if self.combo_wallpaper_fill_mode is not None:
+            self.combo_wallpaper_fill_mode.set_size_request(120, -1)
+        if self.combo_wallpaper_sort is not None:
+            self.combo_wallpaper_sort.set_size_request(120, -1)
+        if self.label_wallpaper_folder is not None:
+            self.label_wallpaper_folder.set_text("Folder")
+        fill_label = self.builder.get_object("label_wallpaper_fill_mode")
+        if fill_label is not None:
+            fill_label.set_text("Fill")
+        source_label = self.builder.get_object("label_wallpaper_source")
+        if source_label is not None:
+            source_label.hide()
+        if self.switch_wallpaper_system_source is not None:
+            self.switch_wallpaper_system_source.hide()
+
+        for child in list(box.get_children()):
+            box.remove(child)
+
+        widgets = [
+            self.wallpaper_source_picker,
+            fill_label,
+            self.combo_wallpaper_fill_mode,
+            self.combo_wallpaper_sort,
+            self.label_wallpaper_folder,
+            self.chooser_wallpaper_folder,
+            self.entry_wallpaper_search,
+        ]
+        for w in widgets:
+            if w is None:
+                continue
+            row.pack_start(w, False, False, 0)
+
+        if self.entry_wallpaper_search is not None:
+            row.set_child_packing(
+                self.entry_wallpaper_search, False, False, 0, Gtk.PackType.START
+            )
+
+        box.set_orientation(Gtk.Orientation.VERTICAL)
+        box.set_spacing(0)
+        box.pack_start(row, False, False, 0)
+        box._loom_refined_layout = True
+        box.show_all()
+
+    def _dock_wallpaper_count_footer(self):
+        if self.label_wallpaper_count is None:
+            return
+        if self.wallpaper_footer_bar is not None:
+            return
+        if self.builder is None:
+            return
+
+        page = self.builder.get_object("page_wallpapers")
+        if page is None:
+            return
+
+        parent = self.label_wallpaper_count.get_parent()
+        if parent is not None:
+            parent.remove(self.label_wallpaper_count)
+
+        self.label_wallpaper_count.set_xalign(0.0)
+        self.label_wallpaper_count.get_style_context().add_class(
+            "wallpaper-count-footer"
+        )
+
+        footer = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        footer.get_style_context().add_class("wallpaper-footer")
+        footer.set_margin_start(2)
+        footer.set_margin_end(2)
+        footer.set_margin_bottom(1)
+        footer.pack_start(self.label_wallpaper_count, False, False, 0)
+
+        spacer = Gtk.Box()
+        spacer.set_hexpand(True)
+        footer.pack_start(spacer, True, True, 0)
+
+        if self.scale_wallpaper_thumb_size is None:
+            scale = Gtk.Scale.new_with_range(
+                Gtk.Orientation.HORIZONTAL, 180.0, 420.0, 10.0
+            )
+            scale.connect("value-changed", self.on_wallpaper_thumb_size_changed)
+            self.scale_wallpaper_thumb_size = scale
+
+        if self.scale_wallpaper_thumb_size is not None:
+            zoom_scale = self.scale_wallpaper_thumb_size
+            zoom_scale.set_draw_value(False)
+            zoom_scale.set_size_request(92, 12)
+            zoom_scale.set_digits(0)
+            zoom_scale.set_value_pos(Gtk.PositionType.RIGHT)
+            zoom_scale.set_tooltip_text("Wallpaper zoom")
+            zoom_scale.get_style_context().add_class("wallpaper-zoom-compact")
+            parent = zoom_scale.get_parent()
+            if parent is not None:
+                parent.remove(zoom_scale)
+            footer.pack_end(zoom_scale, False, False, 0)
+            self.wallpaper_footer_zoom_scale = zoom_scale
+
+        page.pack_end(footer, False, False, 0)
+        self.wallpaper_footer_bar = footer
+        footer.show_all()
+
+    def sync_wallpaper_controls_from_settings(self):
+        self.app._loading_wallpaper_state = True
+        try:
+            source = self.app.wallpaper_service.get_source()
+            fill_mode = self.app.wallpaper_service.get_fill_mode()
+            sort_mode = self.app.wallpaper_service.get_sort_mode()
+            custom_dirs = self.app.wallpaper_service.get_custom_dirs()
+            is_system = source == "system"
+
+            if self.switch_wallpaper_system_source is not None:
+                self.switch_wallpaper_system_source.set_active(is_system)
+            if self.wallpaper_source_system_btn is not None:
+                self.wallpaper_source_system_btn.set_active(is_system)
+            if self.wallpaper_source_custom_btn is not None:
+                self.wallpaper_source_custom_btn.set_active(not is_system)
+
+            if self.chooser_wallpaper_folder is not None:
+                self.chooser_wallpaper_folder.set_sensitive(not is_system)
+                if custom_dirs:
+                    custom_path = custom_dirs[0]
+                    if custom_path.exists():
+                        self.chooser_wallpaper_folder.set_filename(str(custom_path))
+
+            if self.label_wallpaper_folder is not None:
+                self.label_wallpaper_folder.set_sensitive(not is_system)
+
+            if self.combo_wallpaper_fill_mode is not None:
+                idx = FILL_MODES.index(fill_mode) if fill_mode in FILL_MODES else 0
+                self.combo_wallpaper_fill_mode.set_active(idx)
+            if self.combo_wallpaper_sort is not None:
+                sort_index = {
+                    "name_asc": 0,
+                    "name_desc": 1,
+                    "newest": 2,
+                    "oldest": 3,
+                }
+                self.combo_wallpaper_sort.set_active(sort_index.get(sort_mode, 0))
+            self.app.thumb_width = self.app.wallpaper_service.get_thumb_size()
+            if self.scale_wallpaper_thumb_size is not None:
+                self.scale_wallpaper_thumb_size.set_value(float(self.app.thumb_width))
+        finally:
+            self.app._loading_wallpaper_state = False
+
+    def on_wallpaper_grid_scroller_size_allocate(self, _widget, allocation):
+        self._update_wallpaper_grid_columns(int(allocation.width))
+
+    def _update_wallpaper_grid_columns(self, viewport_width: int | None = None):
+        if self.wallpaper_flowbox is None:
+            return
+
+        if viewport_width is None and self.wallpaper_grid_scroller is not None:
+            viewport_width = int(self.wallpaper_grid_scroller.get_allocated_width())
+
+        if viewport_width is None or viewport_width <= 0:
+            return
+
+        col_spacing = int(self.wallpaper_flowbox.get_column_spacing())
+        side_margins = int(
+            self.wallpaper_flowbox.get_margin_start()
+            + self.wallpaper_flowbox.get_margin_end()
+        )
+        available = max(1, viewport_width - side_margins)
+
+        # Keep card footers fully visible in narrower layouts.
+        card_width = max(160, min(320, int(self.app.thumb_width)))
+        columns = int((available + col_spacing) // max(1, card_width + col_spacing))
+        columns = max(2, min(4, columns))
+        self.wallpaper_flowbox.set_max_children_per_line(columns)
+
+    def _sorted_filtered_wallpapers(self):
+        entries = self.app.wallpaper_service.list_wallpapers()
+        query = ""
+        if self.entry_wallpaper_search is not None:
+            query = self.entry_wallpaper_search.get_text().strip().lower()
+
+        if query:
+            entries = [
+                e
+                for e in entries
+                if query in e.name.lower()
+                or query in str(e.path).lower()
+                or query in self._compose_wallpaper_display_name(e).lower()
+            ]
+
+        mode = self.app.wallpaper_service.get_sort_mode()
+
+        def mtime(entry):
+            try:
+                return entry.path.stat().st_mtime
+            except Exception:
+                return 0
+
+        if mode == "name_desc":
+            entries.sort(key=lambda e: e.name.lower(), reverse=True)
+        elif mode == "newest":
+            entries.sort(key=mtime, reverse=True)
+        elif mode == "oldest":
+            entries.sort(key=mtime)
+        else:
+            entries.sort(key=lambda e: e.name.lower())
+
+        return entries
+
+    def reload_wallpapers(self):
+        if self.wallpaper_flowbox is None:
+            return
+
+        with self.app._reload_lock:
+            self.app.current_reload_id += 1
+            reload_id = self.app.current_reload_id
+
+        self._clear_widget_children(self.wallpaper_flowbox)
+        if self.label_wallpaper_count is not None:
+            self.label_wallpaper_count.set_text("Loading...")
+
+        thread = threading.Thread(
+            target=self._reload_wallpapers_thread, args=(reload_id,), daemon=True
+        )
+        thread.start()
+
+    def _reload_wallpapers_thread(self, reload_id):
+        flowbox = self.wallpaper_flowbox
+        if flowbox is None:
+            return
+
+        entries = self._sorted_filtered_wallpapers()
+
+        def update_count():
+            if self.app.current_reload_id == reload_id and self.label_wallpaper_count:
+                self.label_wallpaper_count.set_text(f"{len(entries)} wallpapers")
+            return False
+
+        GLib.idle_add(update_count)
+
+        thumb_w = max(160, min(320, int(self.app.thumb_width)))
+        thumb_h = max(120, int(thumb_w * 3 / 4))
+
+        for entry in entries:
+            if self.app.current_reload_id != reload_id:
+                break
+
+            # Heavy lifting in worker thread
+            palette = self._extract_palette(entry.path)
+            pixbuf = self._get_thumbnail_pixbuf(entry.path, thumb_w, thumb_h)
+
+            def add_wallpaper_card(e, p, pb):
+                if self.app.current_reload_id != reload_id:
+                    return False
+
+                flow_child = Gtk.FlowBoxChild()
+
+                card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+
+                card_img = self._build_rounded_thumbnail_widget(
+                    pb, thumb_w, thumb_h, 9.0
+                )
+                is_colorized = self._is_colorized_path(e.path) or str(
+                    e.name
+                ).lower().startswith("colorized/")
+
+                media_widget = card_img
+                if is_colorized:
+                    overlay = Gtk.Overlay()
+                    overlay.add(card_img)
+
+                    badge = Gtk.Label(label="COLORIZED")
+                    badge.get_style_context().add_class("colorized-badge")
+                    badge.set_halign(Gtk.Align.START)
+                    badge.set_valign(Gtk.Align.START)
+                    badge.set_margin_top(8)
+                    badge.set_margin_start(8)
+                    overlay.add_overlay(badge)
+                    media_widget = overlay
+
+                # Clean filename + optional custom display name
+                clean_name = Path(e.name).name
+                display_name = self._compose_wallpaper_display_name(e, is_colorized)
+                card_name = Gtk.Label(label=display_name)
+                card_name.get_style_context().add_class("wallpaper-title")
+                card_name.set_xalign(0.0)
+                card_name.set_ellipsize(Pango.EllipsizeMode.END)
+                card_name.set_max_width_chars(max(18, int(thumb_w / 12)))
+
+                media_click = Gtk.EventBox()
+                media_click.set_visible_window(False)
+                media_click.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
+                media_click.set_tooltip_text("Click or double-click to edit name")
+                media_click.connect(
+                    "button-press-event",
+                    self.on_wallpaper_name_activate,
+                    str(e.path),
+                    card_name,
+                    is_colorized,
+                    clean_name,
+                )
+                media_click.add(media_widget)
+
+                name_click = Gtk.EventBox()
+                name_click.set_visible_window(False)
+                name_click.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
+                name_click.set_tooltip_text("Click or double-click to edit name")
+                name_click.connect(
+                    "button-press-event",
+                    self.on_wallpaper_name_activate,
+                    str(e.path),
+                    card_name,
+                    is_colorized,
+                    clean_name,
+                )
+                name_click.add(card_name)
+
+                swatch_size = 20 if thumb_w >= 240 else 18 if thumb_w >= 210 else 16
+                actions_row_min = (4 * 28) + (3 * 4)
+                swatch_slot = swatch_size + 3
+                swatch_budget = max(0, thumb_w - actions_row_min - 8)
+                max_swatches = max(2, swatch_budget // max(1, swatch_slot))
+                swatches = self._build_swatch_row(
+                    p[:max_swatches], swatch_size=swatch_size, spacing=3
+                )
+
+                def make_action_icon_button(icon_name: str, tooltip: str):
+                    btn = Gtk.Button()
+                    img = Gtk.Image.new_from_icon_name(icon_name, Gtk.IconSize.MENU)
+                    img.set_pixel_size(15)
+                    img.set_halign(Gtk.Align.CENTER)
+                    img.set_valign(Gtk.Align.CENTER)
+                    btn.set_image(img)
+                    btn.set_always_show_image(True)
+                    btn.set_tooltip_text(tooltip)
+                    btn.set_relief(Gtk.ReliefStyle.NONE)
+                    btn.get_style_context().add_class("overlay-action-button")
+                    return btn
+
+                preview_button = make_action_icon_button(
+                    "view-preview-symbolic", "Preview"
+                )
+                preview_button.connect(
+                    "clicked", self.on_wallpaper_preview_clicked, str(e.path)
+                )
+
+                colorize_button = make_action_icon_button(
+                    "format-fill-color-symbolic", "Colorize"
+                )
+                colorize_button.connect(
+                    "clicked", self.on_wallpaper_colorize_clicked, str(e.path)
+                )
+                apply_button = make_action_icon_button(
+                    "object-select-symbolic", "Apply wallpaper"
+                )
+                apply_button.connect(
+                    "clicked", self.on_wallpaper_apply_clicked, str(e.path)
+                )
+
+                delete_button = make_action_icon_button(
+                    "edit-delete-symbolic", "Delete wallpaper"
+                )
+                delete_button.connect(
+                    "clicked", self.on_wallpaper_delete_clicked, str(e.path), flow_child
+                )
+
+                actions_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
+                actions_row.pack_start(preview_button, False, False, 0)
+                actions_row.pack_start(colorize_button, False, False, 0)
+                actions_row.pack_start(apply_button, False, False, 0)
+                actions_row.pack_start(delete_button, False, False, 0)
+
+                footer_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
+                footer_row.set_hexpand(True)
+                spacer = Gtk.Box()
+                spacer.set_hexpand(True)
+                footer_row.pack_start(swatches, False, False, 0)
+                footer_row.pack_start(spacer, True, True, 0)
+                footer_row.pack_start(actions_row, False, False, 0)
+
+                card.pack_start(media_click, False, False, 0)
+                card.pack_start(name_click, False, False, 0)
+                card.pack_start(footer_row, False, False, 0)
+
+                flow_child.add(card)
+                flowbox.add(flow_child)
+                flow_child.show_all()
+                return False
+
+            GLib.idle_add(add_wallpaper_card, entry, palette, pixbuf)
+
+        self._save_palette_cache_to_disk()
+
+

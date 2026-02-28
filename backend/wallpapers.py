@@ -1,17 +1,20 @@
 from __future__ import annotations
 
-import os
-import shutil
-import subprocess
-import threading
+import colorsys
 import hashlib
 import json
 import math
-import colorsys
+import os
 import random
+import shutil
+import subprocess
+import threading
 from dataclasses import dataclass
 from pathlib import Path
 
+import gi
+
+gi.require_version("GdkPixbuf", "2.0")
 from gi.repository import GdkPixbuf
 
 from .settings import SettingsStore
@@ -71,6 +74,23 @@ class WallpaperService:
         self.thumb_cache_dir.mkdir(parents=True, exist_ok=True)
         self._load_palette_cache_from_disk()
         self._prune_thumbnail_cache(max_files=5000)
+
+    def _prune_thumbnail_cache(self, max_files: int = 5000):
+        try:
+            files = sorted(
+                self.thumb_cache_dir.glob("*.png"),
+                key=lambda p: p.stat().st_mtime,
+                reverse=True,
+            )
+        except Exception:
+            return
+        if len(files) <= max_files:
+            return
+        for old in files[max_files:]:
+            try:
+                old.unlink()
+            except Exception:
+                continue
 
     def _import_legacy_colorized_variants(self) -> None:
         legacy = self.legacy_colorized_dir

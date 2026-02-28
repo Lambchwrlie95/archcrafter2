@@ -8,14 +8,14 @@ converted will continue to work.
 
 from importlib import import_module
 from pathlib import Path
-from typing import Type, TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Type
 
 from pages.base import BasePage
 
 if TYPE_CHECKING:
     from main import ArchCrafter2App
 
-MODES = ["mixer", "builder", "presets"]
+MODES = ["sections"]
 
 # Central registry for page id -> page class
 _PAGE_REGISTRY: dict[str, Type[BasePage]] = {}
@@ -93,8 +93,8 @@ def get_all_pages() -> dict[str, Type[BasePage]]:
 
 # Convenience exports for the grouped sections package
 try:
-    from pages.sections import SECTIONS as SECTIONS  # type: ignore
     from pages.sections import ALL_PAGES as ALL_PAGES  # type: ignore
+    from pages.sections import SECTIONS as SECTIONS  # type: ignore
 except Exception:
     SECTIONS = {}
     ALL_PAGES = []
@@ -111,7 +111,9 @@ def get_section_class(page_id: str) -> Optional[Type[BasePage]]:
 
 def get_mode_pages(mode: str) -> list[Type[BasePage]]:
     """Get all pages for a specific mode."""
-    return [p for p in get_all_pages().values() if p.__module__.startswith(f"pages.{mode}")]
+    return [
+        p for p in get_all_pages().values() if p.__module__.startswith(f"pages.{mode}")
+    ]
 
 
 def get_sidebar_items_for_mode(mode: str) -> list:
