@@ -1,18 +1,55 @@
+/* global color definitions mimicking GTK/GtkBuilder style */
+@define-color loom-base-bg rgba(0,0,0,0); /* transparent fallback */
+@define-color loom-accent #5ba1ea;
+@define-color loom-fg #e6eaf0;
+@define-color loom-fg-secondary rgba(225, 233, 245, 0.70);
+@define-color loom-overlay-hover rgba(255, 255, 255, 0.10);
+@define-color loom-overlay-active rgba(255, 255, 255, 0.16);
+@define-color loom-border-light rgba(255, 255, 255, 0.08);
+@define-color loom-border-medium rgba(255, 255, 255, 0.14);
+@define-color loom-border-strong rgba(255, 255, 255, 0.24);
+@define-color loom-bg-ultralight rgba(255, 255, 255, 0.01);
+@define-color loom-bg-light rgba(255, 255, 255, 0.03);
+@define-color loom-bg-mid rgba(255, 255, 255, 0.07);
+@define-color loom-bg-hover rgba(255, 255, 255, 0.05);
+@define-color loom-fg-muted rgba(255, 255, 255, 0.90);
+@define-color loom-success-bg rgba(44, 153, 99, 0.26);
+@define-color loom-success-border rgba(44, 153, 99, 0.55);
+@define-color loom-warn-bg rgba(178, 130, 45, 0.26);
+@define-color loom-warn-border rgba(178, 130, 45, 0.55);
+@define-color loom-selection-bg rgba(91, 161, 234, 0.18);
+@define-color loom-selection-border rgba(91, 161, 234, 0.74);
+@define-color loom-selection-border-light rgba(91, 161, 234, 0.42);
+@define-color loom-menu-engine-bg rgba(83, 132, 209, 0.22);
+@define-color loom-menu-engine-border rgba(83, 132, 209, 0.52);
+@define-color loom-fg-strong rgba(225,233,245,0.82);
+@define-color loom-fg-light rgba(225,233,245,0.62);
+@define-color loom-fg-low rgba(225,233,245,0.72);
+@define-color loom-bg-dark rgba(4, 6, 10, 0.62);
+@define-color loom-colorized-bg rgba(20, 130, 200, 0.88);
+@define-color loom-border-hover rgba(255, 255, 255, 0.16);
+@define-color loom-active-border rgba(91, 161, 234, 0.85);
+@define-color loom-border-quieter rgba(255, 255, 255, 0.06);
+@define-color loom-border-normal rgba(255, 255, 255, 0.12);
+
+/* keep the original semantic class names for ease of migration */
 .preview-shell {
-    background-color: transparent;
+    background-color: @loom-base-bg;
     border: none;
     border-radius: 8px;
 }
 
+/* wallpaper item title style */
 .wallpaper-title {
     font-size: 11px;
     font-weight: 500;
-    color: rgba(255, 255, 255, 0.70);
+    color: @loom-fg-secondary;
 }
 
+/* small circular button used as overlay controls */
 .overlay-action-button {
     background-color: transparent;
-    color: rgba(225, 233, 245, 0.82);
+    color: @loom-fg-strong;
     border-radius: 6px;
     border: none;
     min-height: 28px;
@@ -21,17 +58,17 @@
 }
 
 .overlay-action-button:hover {
-    background-color: rgba(255, 255, 255, 0.10);
+    background-color: @loom-overlay-hover;
     color: #ffffff;
 }
 
 .overlay-action-button:active {
-    background-color: rgba(255, 255, 255, 0.16);
+    background-color: @loom-overlay-active;
     color: #ffffff;
 }
 
 .colorize-swatch {
-    border: 1px solid rgba(255, 255, 255, 0.24);
+    border: 1px solid @loom-border-strong;
     border-radius: 10px;
 }
 
@@ -44,11 +81,11 @@
 
 .colorize-chip-button:hover {
     background-color: transparent;
-    border-color: rgba(255, 255, 255, 0.34);
+    border-color: @loom-border-strong;
 }
 
 .colorized-badge {
-    background-color: rgba(20, 130, 200, 0.88);
+    background-color: @loom-colorized-bg;
     color: #ffffff;
     border-radius: 6px;
     padding: 3px 8px;
@@ -57,8 +94,8 @@
 }
 
 .theme-card {
-    background-color: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background-color: @loom-bg-light;
+    border: 1px solid @loom-border-light;
     border-radius: 8px;
     padding: 10px;
     min-width: 170px;
@@ -70,13 +107,13 @@
 }
 
 .theme-card:hover {
-    background-color: rgba(255, 255, 255, 0.07);
-    border-color: rgba(255, 255, 255, 0.16);
+    background-color: @loom-bg-mid;
+    border-color: @loom-border-hover;
 }
 
 .theme-card-active {
-    border-color: rgba(91, 161, 234, 0.85);
-    background-color: rgba(91, 161, 234, 0.12);
+    border-color: @loom-active-border;
+    background-color: @loom-selection-bg;
 }
 
 .theme-title {
@@ -86,16 +123,16 @@
 
 .theme-subtitle {
     font-size: 10px;
-    color: rgba(225, 233, 245, 0.62);
+    color: @loom-fg-light;
 }
 
 .gtk-theme-mini-preview {
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    border: 1px solid @loom-border-medium;
     border-radius: 8px;
 }
 
 .gtk-theme-preview-surface {
-    border: 1px solid rgba(255, 255, 255, 0.10);
+    border: 1px solid @loom-border-light;
     border-radius: 8px;
     padding: 8px;
 }
@@ -105,7 +142,7 @@
 }
 
 .theme-chip {
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid @loom-border-strong;
     border-radius: 4px;
     min-height: 12px;
     min-width: 12px;
@@ -114,11 +151,11 @@
 .theme-type-badge {
     font-size: 9px;
     font-weight: 700;
-    color: rgba(235, 240, 248, 0.92);
+    color: @loom-fg;
     padding: 2px 6px;
     border-radius: 4px;
-    background-color: rgba(91, 161, 234, 0.18);
-    border: 1px solid rgba(91, 161, 234, 0.42);
+    background-color: @loom-selection-bg;
+    border: 1px solid @loom-selection-border-light;
 }
 
 .theme-apply-button {
@@ -133,8 +170,8 @@
 }
 
 .icon-theme-preview-surface {
-    background-color: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background-color: @loom-bg-light;
+    border: 1px solid @loom-border-light;
     border-radius: 10px;
     padding: 9px;
     min-width: 190px;
@@ -169,14 +206,14 @@
 }
 
 .icon-theme-symbolic-divider {
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    border-top: 1px solid @loom-border-light;
     padding-top: 5px;
 }
 
 .icon-theme-preview-section-title {
     font-size: 10px;
     font-weight: 700;
-    color: rgba(225, 233, 245, 0.72);
+    color: @loom-fg-low;
     margin-top: 4px;
 }
 
@@ -192,12 +229,12 @@
 
 .theme-secondary-button {
     background-image: none;
-    background-color: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    background-color: @loom-muted;
+    border: 1px solid @loom-border-medium;
 }
 
 .theme-secondary-button:hover {
-    background-color: rgba(255, 255, 255, 0.10);
+    background-color: @loom-bg-hover;
 }
 
 .theme-primary-button {
@@ -210,7 +247,7 @@
 }
 
 #sidebar_list row:selected {
-    background-color: rgba(91, 161, 234, 0.18);
+    background-color: @loom-selection-bg;
 }
 
 #sidebar_list row image {
@@ -218,25 +255,25 @@
 }
 
 .sidebar-header {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid @loom-border-quieter;
 }
 
 #top_mode_bar {
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    border-top: 1px solid @loom-border-quieter;
     padding-top: 6px;
 }
 
 #top_mode_links {
-    background-color: rgba(255, 255, 255, 0.01);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    background-color: @loom-bg-ultralight;
+    border: 1px solid @loom-border-normal;
     border-radius: 10px;
 }
 
 .mode-link-btn {
     background-image: none;
     background-color: transparent;
-    color: rgba(237, 240, 246, 0.90);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: @loom-fg-muted;
+    border: 1px solid @loom-border-normal;
     border-radius: 0;
     padding: 4px 8px;
     min-height: 28px;
@@ -245,13 +282,13 @@
 }
 
 .mode-link-btn:hover {
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: @loom-bg-hover;
     color: #ffffff;
 }
 
 .mode-link-btn:checked {
-    background-color: rgba(91, 161, 234, 0.18);
-    border-color: rgba(91, 161, 234, 0.74);
+    background-color: @loom-selection-bg;
+    border-color: @loom-selection-border;
     color: #ffffff;
 }
 
@@ -282,7 +319,7 @@
 }
 
 .mode-placeholder-subtitle {
-    color: rgba(255, 255, 255, 0.72);
+    color: @loom-fg-low;
 }
 
 .bar-hint-chip {
@@ -295,8 +332,8 @@
 }
 
 .bar-preview-surface {
-    background-color: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    background-color: @loom-bg-light;
+    border: 1px solid @loom-border-normal;
     border-radius: 8px;
     padding: 8px;
 }
@@ -304,14 +341,14 @@
 .bar-preview-strip {
     min-height: 34px;
     border-radius: 6px;
-    background-color: rgba(4, 6, 10, 0.62);
-    border: 1px solid rgba(255, 255, 255, 0.10);
+    background-color: @loom-bg-dark;
+    border: 1px solid @loom-border-light;
     padding: 5px 8px;
 }
 
 .bar-preview-segment {
-    background-color: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    background-color: @loom-bg-mid;
+    border: 1px solid @loom-border-medium;
     border-radius: 4px;
     padding: 2px 6px;
     font-size: 9px;
@@ -327,17 +364,17 @@
 }
 
 .bar-status-ok {
-    background-color: rgba(44, 153, 99, 0.26);
-    border-color: rgba(44, 153, 99, 0.55);
+    background-color: @loom-success-bg;
+    border-color: @loom-success-border;
 }
 
 .bar-status-warn {
-    background-color: rgba(178, 130, 45, 0.26);
-    border-color: rgba(178, 130, 45, 0.55);
+    background-color: @loom-warn-bg;
+    border-color: @loom-warn-border;
 }
 
 .wallpaper-footer {
-    border-top: 1px solid rgba(255, 255, 255, 0.04);
+    border-top: 1px solid @loom-muted;
     padding-top: 1px;
 }
 
@@ -347,7 +384,7 @@
 
 .wallpaper-count-footer {
     font-size: 9px;
-    color: rgba(225, 233, 245, 0.56);
+    color: @loom-fg-secondary;
 }
 
 .wallpaper-zoom-compact trough {
@@ -365,8 +402,8 @@
 }
 
 .menu-engine-badge {
-    background-color: rgba(83, 132, 209, 0.22);
-    border-color: rgba(83, 132, 209, 0.52);
+    background-color: @loom-menu-engine-bg;
+    border-color: @loom-menu-engine-border;
 }
 
 .menu-tag-chip {
@@ -374,15 +411,15 @@
     border-radius: 10px;
     font-size: 9px;
     font-weight: 600;
-    color: rgba(231, 237, 246, 0.86);
-    background-color: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: @loom-fg-secondary;
+    background-color: @loom-bg-ultralight;
+    border: 1px solid @loom-border-light;
 }
 
 .menu-preview-surface {
     border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    background-color: rgba(255, 255, 255, 0.02);
+    border: 1px solid @loom-border-medium;
+    background-color: @loom-muted-light;
 }
 
 .menu-command-label {
@@ -391,11 +428,11 @@
 }
 
 .menu-status-ok {
-    background-color: rgba(44, 153, 99, 0.24);
-    border-color: rgba(44, 153, 99, 0.52);
+    background-color: @loom-success-bg;
+    border-color: @loom-success-border;
 }
 
 .menu-status-warn {
-    background-color: rgba(178, 130, 45, 0.24);
-    border-color: rgba(178, 130, 45, 0.52);
+    background-color: @loom-warn-bg;
+    border-color: @loom-warn-border;
 }

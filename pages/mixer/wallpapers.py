@@ -1,29 +1,9 @@
-"""Wallpaper page - migrated from main.py."""
+"""Compatibility shim for wallpapers section.
 
-from pages.base import BasePage
+This module keeps the original import path while delegating the real
+implementation to `pages.sections.wallpapers` to allow an incremental
+migration without breaking existing code.
+"""
 
+from pages.sections.wallpapers import WallpaperPage  # noqa: F401
 
-class WallpaperPage(BasePage):
-    id = "wallpapers"
-    title = "Wallpapers"
-    icon = "image-x-generic-symbolic"
-
-    @staticmethod
-    def get_sidebar_items():
-        return [
-            (
-                "wallpapers",
-                "Wallpapers",
-                "image-x-generic-symbolic",
-                "Manage wallpapers",
-            ),
-        ]
-
-    def build(self, app, builder):
-        widget = builder.get_object("page_wallpapers")
-        self.widget = widget
-        return widget
-
-    def on_activate(self, app):
-        app.reload_wallpapers()
-        app.sync_wallpaper_controls_from_settings()

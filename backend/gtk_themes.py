@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import subprocess
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -333,3 +335,84 @@ class GtkThemeService:
         if entry.css_path.exists():
             return entry.css_path
         return None
+
+    # -------------------------------------------------------
+    # preview rendering and caching (originally in main.py)
+    # -------------------------------------------------------
+
+    def _theme_signature(self, theme) -> str:
+        """Generate a cache-invalidation signature for a theme based on mtime/size."""
+        css_path = getattr(theme, "css_path", theme.path / "gtk-3.0" / "gtk.css")
+        try:
+            st = css_path.stat()
+            resolved = str(css_path.resolve())
+            return f"{resolved}:{int(st.st_mtime_ns)}:{int(st.st_size)}"
+        except Exception:
+            return f"{str(css_path)}:{theme.name}"
+
+    def _preview_cache_slug(self, name: str) -> str:
+        """Sanitize theme name for use in filesystem paths."""
+        return "".join(ch if ch.isalnum() or ch in "-_" else "_" for ch in name[:48])
+
+    def preview_cache_path(self, theme, variant: str, preview_size: tuple[int, int]) -> Path:
+        """Generate path for cached preview image."""
+        width, height = preview_size
+        key = (
+            f"gtk-preview-v1|{theme.name}|{variant}|{width}x{height}|"
+            f"{self._theme_signature(theme)}"
+        )
+        digest = hashlib.sha1(key.encode("utf-8")).hexdigest()[:20]
+        slug = self._preview_cache_slug(theme.name)
+        cache_dir = self.cache_dir / "gtk_previews"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        return cache_dir / f"{slug}-{variant}-{digest}.png"
+
+    def render_preview_to_cache(
+        self, theme, variant: str, out_path: Path, preview_renderer_path: Path
+    ) -> bool:
+        """Render GTK theme preview via subprocess and cache the result."""
+        if not preview_renderer_path.exists():
+            return False
+
+        # Get dimensions from variant (card vs panel)
+        width = 640 if variant == "panel" else 320
+        height = 420 if variant == "panel" else 150
+
+        tmp_path = out_path.with_suffix(out_path.suffix + ".tmp")
+        cmd = [
+            sys.executable,
+            str(preview_renderer_path),
+            "--theme",
+            str(theme.name),
+            "--output",
+            str(tmp_path),
+            "--width",
+            str(width),
+            "--height",
+            str(height),
+        ]
+
+        try:
+            res = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=22,
+            )
+            if res.returncode != 0 or not tmp_path.exists():
+                try:
+                    if tmp_path.exists():
+                        tmp_path.unlink()
+                except Exception:
+                    pass
+                return False
+            tmp_path.replace(out_path)
+            return True
+        except Exception:
+            try:
+                if tmp_path.exists():
+                    tmp_path.unlink()
+            except Exception:
+                pass
+            return False

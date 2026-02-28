@@ -3,8 +3,16 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
+import threading
+import hashlib
+import json
+import math
+import colorsys
+import random
 from dataclasses import dataclass
 from pathlib import Path
+
+from gi.repository import GdkPixbuf
 
 from .settings import SettingsStore
 from .wallpaper_names import WallpaperNameStore
@@ -43,9 +51,26 @@ class WallpaperService:
         ]
         self.library_dir.mkdir(parents=True, exist_ok=True)
         self.colorized_dir.mkdir(parents=True, exist_ok=True)
+        self.variant_dir = self.colorized_dir
+
+        # palette caching state (moved from application)
+        self.cache_dir = self.base_dir / "cache"
+        self.thumb_cache_dir = self.cache_dir / "thumbnails"
+        self.palette_cache_file = self.cache_dir / "palette_cache.json"
+        self._palette_cache: dict[str, list[str]] = {}
+        self._palette_disk_cache: dict[str, list[str]] = {}
+        self._palette_cache_dirty = False
+        self._palette_cache_dirty_count = 0
+        self._palette_cache_lock = threading.Lock()
+
         self._import_legacy_colorized_variants()
         self.name_store = WallpaperNameStore(settings)
         self._ensure_defaults()
+
+        # initialize directories that used to be created by the app
+        self.thumb_cache_dir.mkdir(parents=True, exist_ok=True)
+        self._load_palette_cache_from_disk()
+        self._prune_thumbnail_cache(max_files=5000)
 
     def _import_legacy_colorized_variants(self) -> None:
         legacy = self.legacy_colorized_dir
@@ -190,6 +215,326 @@ class WallpaperService:
                 unique.append(d)
         return unique
 
+    # -----------------------------------------------------------
+    # palette / color utilities (originally in main.py)
+    # -----------------------------------------------------------
+
+    def _file_signature(self, path: Path):
+        try:
+            st = path.stat()
+            return (int(st.st_mtime_ns), int(st.st_size))
+        except Exception:
+            return (0, 0)
+
+    def _palette_cache_key(self, path: Path, count: int):
+        sig_mtime, sig_size = self._file_signature(path)
+        try:
+            resolved = str(path.resolve())
+        except Exception:
+            resolved = str(path)
+        src = f"{resolved}|{sig_mtime}:{sig_size}|{int(count)}"
+        return hashlib.sha1(src.encode("utf-8")).hexdigest()
+
+    def _load_palette_cache_from_disk(self):
+        with self._palette_cache_lock:
+            self._palette_disk_cache = {}
+        if not self.palette_cache_file.exists():
+            return
+        try:
+            payload = json.loads(self.palette_cache_file.read_text(encoding="utf-8"))
+            if not isinstance(payload, dict):
+                return
+            entries = payload.get("entries", {})
+            if not isinstance(entries, dict):
+                return
+            for key, value in entries.items():
+                if not isinstance(key, str) or not isinstance(value, list):
+                    continue
+                colors = [str(c).lower() for c in value if isinstance(c, str)]
+                if colors:
+                    with self._palette_cache_lock:
+                        self._palette_disk_cache[key] = colors
+        except Exception:
+            with self._palette_cache_lock:
+                self._palette_disk_cache = {}
+
+    def _save_palette_cache_to_disk(self):
+        if not self._palette_cache_dirty:
+            return
+        try:
+            self.cache_dir.mkdir(parents=True, exist_ok=True)
+            with self._palette_cache_lock:
+                entries = dict(self._palette_disk_cache)
+            data = {
+                "version": 1,
+                "entries": entries,
+            }
+            tmp = self.palette_cache_file.with_suffix(".json.tmp")
+            tmp.write_text(
+                json.dumps(data, indent=2, ensure_ascii=True) + "\n",
+                encoding="utf-8",
+            )
+            tmp.replace(self.palette_cache_file)
+            self._palette_cache_dirty = False
+            self._palette_cache_dirty_count = 0
+        except Exception:
+            pass
+
+    def _maybe_flush_palette_cache(self):
+        if self._palette_cache_dirty_count >= 24:
+            self._save_palette_cache_to_disk()
+
+    def extract_palette(self, path: Path, count: int = 5):
+        """Return a cached palette for the given image file."""
+        key = self._palette_cache_key(path, count)
+        with self._palette_cache_lock:
+            cached = self._palette_cache.get(key)
+        if cached:
+            return cached
+
+        with self._palette_cache_lock:
+            disk_cached = self._palette_disk_cache.get(key)
+        if disk_cached:
+            with self._palette_cache_lock:
+                self._palette_cache[key] = disk_cached[:count]
+                return self._palette_cache[key]
+
+        colors = []
+        try:
+            pix = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(path), 80, 80, True)
+            width, height = pix.get_width(), pix.get_height()
+            n = pix.get_n_channels()
+            rowstride = pix.get_rowstride()
+            data = pix.get_pixels()
+
+            freq = {}
+            step = max(1, int((width * height) / 1800))
+            for y in range(0, height, step):
+                base = y * rowstride
+                for x in range(0, width, step):
+                    i = base + x * n
+                    r = data[i]
+                    g = data[i + 1]
+                    b = data[i + 2]
+                    if n == 4 and data[i + 3] < 20:
+                        continue
+                    rq = (r // 24) * 24
+                    gq = (g // 24) * 24
+                    bq = (b // 24) * 24
+                    freq[(rq, gq, bq)] = freq.get((rq, gq, bq), 0) + 1
+
+            ranked = sorted(freq.items(), key=lambda kv: kv[1], reverse=True)
+            picked = []
+            for (r, g, b), _ in ranked:
+                if all(self._color_distance((r, g, b), p) >= 30 for p in picked):
+                    picked.append((r, g, b))
+                if len(picked) >= count:
+                    break
+
+            for r, g, b in picked:
+                colors.append(f"#{r:02x}{g:02x}{b:02x}")
+        except Exception:
+            colors = []
+
+        if not colors:
+            colors = ["#4c566a", "#5e81ac", "#88c0d0", "#a3be8c", "#ebcb8b"]
+
+        with self._palette_cache_lock:
+            self._palette_cache[key] = colors[:count]
+            self._palette_disk_cache[key] = colors[:count]
+        self._palette_cache_dirty = True
+        self._palette_cache_dirty_count += 1
+        self._maybe_flush_palette_cache()
+        with self._palette_cache_lock:
+            return self._palette_cache[key]
+
+    def _hex_to_rgb(self, color_hex: str):
+        value = color_hex.lstrip("#")
+        if len(value) != 6:
+            return 0.5, 0.5, 0.5
+        r = int(value[0:2], 16) / 255.0
+        g = int(value[2:4], 16) / 255.0
+        b = int(value[4:6], 16) / 255.0
+        return r, g, b
+
+    def _rgb_to_hex(self, r: float, g: float, b: float):
+        r = max(0, min(255, int(round(r * 255))))
+        g = max(0, min(255, int(round(g * 255))))
+        b = max(0, min(255, int(round(b * 255))))
+        return f"#{r:02x}{g:02x}{b:02x}"
+
+    def mix_hex(self, base_hex: str, target_hex: str, ratio: float):
+        ratio = max(0.0, min(1.0, float(ratio)))
+        br, bg, bb = self._hex_to_rgb(base_hex)
+        tr, tg, tb = self._hex_to_rgb(target_hex)
+        rr = br + (tr - br) * ratio
+        gg = bg + (tg - bg) * ratio
+        bb2 = bb + (tb - bb) * ratio
+        return self._rgb_to_hex(rr, gg, bb2)
+
+    def _is_light_hex(self, color_hex: str) -> bool:
+        r, g, b = self._hex_to_rgb(color_hex)
+        lum = 0.2126 * r + 0.7152 * g + 0.0722 * b
+        return lum >= 0.56
+
+    def _color_distance(self, a, b):
+        return math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2)
+
+    def get_similar_colors(self, base_colors):
+        result = []
+        seeds = base_colors[:5] if base_colors else ["#5e81ac"]
+        for color_hex in seeds:
+            r, g, b = self._hex_to_rgb(color_hex)
+            h, s, v = colorsys.rgb_to_hsv(r, g, b)
+            for dh in (0.0, 0.03, -0.03, 0.07, -0.07, 0.12, -0.12):
+                nh = (h + dh) % 1.0
+                for sat_mul, val_mul in (
+                    (1.0, 1.0),
+                    (1.1, 1.0),
+                    (0.9, 1.1),
+                    (1.2, 0.95),
+                ):
+                    ns = max(0.18, min(1.0, s * sat_mul))
+                    nv = max(0.2, min(1.0, v * val_mul))
+                    rr, gg, bb = colorsys.hsv_to_rgb(nh, ns, nv)
+                    result.append(self._rgb_to_hex(rr, gg, bb))
+
+        return self._unique_colors(result, limit=30)
+
+    def get_color_theory_colors(self, base_colors):
+        seeds = self._unique_colors(base_colors, limit=3) or ["#5E81AC"]
+        result = []
+
+        for color_hex in seeds:
+            r, g, b = self._hex_to_rgb(color_hex)
+            h, s, v = colorsys.rgb_to_hsv(r, g, b)
+
+            # Analogous / complement / split-complement / triadic / square
+            for deg in (0, 30, -30, 180, 150, -150, 120, -120, 90, -90):
+                nh = (h + deg / 360.0) % 1.0
+                for sat_mul, val_mul in ((1.0, 1.0), (0.85, 1.08), (1.15, 0.92)):
+                    ns = max(0.18, min(1.0, s * sat_mul))
+                    nv = max(0.16, min(1.0, v * val_mul))
+                    rr, gg, bb = colorsys.hsv_to_rgb(nh, ns, nv)
+                    result.append(self._rgb_to_hex(rr, gg, bb))
+
+            # Monochromatic tints/shades
+            for vv in (0.28, 0.42, 0.56, 0.70, 0.84, 0.95):
+                rr, gg, bb = colorsys.hsv_to_rgb(h, max(0.12, s * 0.75), vv)
+                result.append(self._rgb_to_hex(rr, gg, bb))
+
+        return self._unique_colors(result, limit=36)
+
+    def get_recent_colorize_swatches(self):
+        section = self.settings.get_section("wallpapers", default={})
+        values = section.get("colorize_recent", [])
+        if not isinstance(values, list):
+            return []
+        return self._unique_colors(values, limit=24)
+
+    def record_colorize_swatch(self, color_hex: str):
+        normalized = self._unique_colors([color_hex], limit=1)
+        if not normalized:
+            return
+        color = normalized[0]
+
+        section = self.settings.get_section("wallpapers", default={})
+        current = section.get("colorize_recent", [])
+        if not isinstance(current, list):
+            current = []
+
+        merged = [color] + [
+            c for c in self._unique_colors(current, limit=64) if c != color
+        ]
+        section["colorize_recent"] = merged[:36]
+        self.settings.save()
+
+    def _random_color(self):
+        return f"#{random.randint(0, 255):02x}{random.randint(0, 255):02x}{random.randint(0, 255):02x}"
+
+    def get_colorize_strength(self) -> int:
+        section = self.settings.get_section("wallpapers", default={})
+        raw = section.get("colorize_strength", 65)
+        try:
+            value = int(raw)
+        except Exception:
+            value = 65
+        return max(10, min(100, value))
+
+    # helper for determining if a path belongs to the colorized variant folder
+    def is_colorized_path(self, path: Path) -> bool:
+        try:
+            return Path(path).resolve().is_relative_to(self.variant_dir.resolve())
+        except Exception:
+            return "colorized" in str(path).lower()
+
+    def compose_display_name(self, entry, is_colorized: bool | None = None):
+        if is_colorized is None:
+            is_colorized = self.is_colorized_path(entry.path) or str(
+                entry.name
+            ).lower().startswith("colorized/")
+
+        base = self.get_display_name(entry.path, Path(entry.name).name)
+        if is_colorized and "(colorized)" not in base.lower():
+            return f"{base} (Colorized)"
+        return base
+
+    def set_colorize_strength(self, value: int):
+        section = self.settings.get_section("wallpapers", default={})
+        section["colorize_strength"] = max(10, min(100, int(value)))
+        self.settings.save()
+
+    def create_colorized_variant(
+        self, source_path: Path, color_hex: str, strength: int = 55
+    ) -> tuple[Path | None, str | None]:
+        src = Path(source_path)
+        if not src.exists():
+            return None, "Source image not found"
+
+        safe_stem = "".join(ch if ch.isalnum() else "_" for ch in src.stem)[:48]
+        digest = hashlib.sha1(str(src).encode("utf-8")).hexdigest()[:10]
+        color_tag = color_hex.lstrip("#").lower()
+        out = self.variant_dir / f"{safe_stem}_{digest}_{color_tag}_{strength}.png"
+        if out.exists():
+            return out, None
+
+        magick = shutil.which("magick")
+        convert = shutil.which("convert")
+        cmd = None
+        if magick:
+            cmd = [
+                magick,
+                str(src),
+                "-fill",
+                color_hex,
+                "-colorize",
+                str(strength),
+                str(out),
+            ]
+        elif convert:
+            cmd = [
+                convert,
+                str(src),
+                "-fill",
+                color_hex,
+                "-colorize",
+                str(strength),
+                str(out),
+            ]
+        else:
+            return (
+                None,
+                "ImageMagick is required for colorize (magick/convert not found)",
+            )
+
+        try:
+            subprocess.run(
+                cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+            )
+            return out, None
+        except Exception as exc:
+            return None, f"Colorize failed: {exc}"
+
     def list_wallpapers(self) -> list[WallpaperEntry]:
         found: dict[str, WallpaperEntry] = {}
         for folder in self.get_search_dirs():
@@ -313,3 +658,37 @@ class WallpaperService:
         section["last_applied"] = str(wp)
         self.settings.save()
         return True, f"Applied: {wp.name}"
+
+    # -------------------------------------------------------
+    # Badge CSS generation (originally in main.py)
+    # -------------------------------------------------------
+
+    def get_colorized_badge_css(self) -> tuple[str, str]:
+        """Return (bg_color, text_color) for colorized badge display.
+
+        Uses the wallpaper section's colorized_badge_color setting and
+        calculates appropriate text color based on luminance.
+        """
+        section = self.settings.get_section("wallpapers", default={})
+        raw = str(
+            section.get(
+                "colorized_tag_color", section.get("colorized_badge_color", "#1482C8")
+            )
+        ).strip()
+
+        if raw.startswith("#"):
+            raw = raw[1:]
+        if len(raw) != 6:
+            raw = "1482C8"
+        try:
+            r = int(raw[0:2], 16)
+            g = int(raw[2:4], 16)
+            b = int(raw[4:6], 16)
+        except Exception:
+            r, g, b = 20, 130, 200
+
+        # Basic contrast text color based on relative luminance.
+        lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255.0
+        text = "#111111" if lum > 0.62 else "#ffffff"
+        bg = f"rgba({r}, {g}, {b}, 0.88)"
+        return bg, text

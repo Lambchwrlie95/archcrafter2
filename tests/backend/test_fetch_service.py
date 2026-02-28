@@ -6,6 +6,7 @@ import sys
 import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
 def _load_module(module_name: str, module_path: Path):
     spec = importlib.util.spec_from_file_location(module_name, module_path)
     if spec is None or spec.loader is None:
@@ -29,9 +30,16 @@ FetchService = fetch_module.FetchService
 settings_module = _load_module("loom_backend_settings", PROJECT_ROOT / "backend" / "settings.py")
 SettingsStore = settings_module.SettingsStore
 
+# Import the service container so tests can exercise centralized workflow.
+services_module = _load_module("loom_backend_services", PROJECT_ROOT / "backend" / "services.py")
+ServiceContainer = services_module.ServiceContainer
+
 
 def _build_service(base: Path) -> FetchService:
-    return FetchService(base, object())
+    # use the container to obtain the fetch service; this also verifies
+    # the container constructor works with a minimal settings file path.
+    container = ServiceContainer(base, base / "settings.json")
+    return container.fetch
 
 
 def test_list_fastfetch_presets_reads_json_and_jsonc(tmp_path: Path) -> None:
@@ -104,6 +112,20 @@ def test_list_presets_rejects_absolute_engine_path(tmp_path: Path) -> None:
     service = _build_service(base)
 
     assert service.list_presets(str(leak_dir)) == []
+
+
+def test_service_container_as_dict(tmp_path: Path) -> None:
+    # ensure container builds all expected attributes and the as_dict helper
+    base = tmp_path / "app"
+    base.mkdir(parents=True)
+    container = ServiceContainer(base, base / "settings.json")
+    data = container.as_dict()
+    # keys should roughly match the services we create
+    expected_keys = {"settings", "wallpapers", "gtk_themes", "window_themes", "fetch", "external_tools"}
+    assert set(data.keys()) == expected_keys
+    # and each value corresponds to the attribute
+    for k, v in data.items():
+        assert getattr(container, k) is v
 
 
 def test_list_presets_handles_iterdir_oserror(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

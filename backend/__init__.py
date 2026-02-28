@@ -8,6 +8,7 @@ from .settings import SettingsStore
 from .themes import WindowThemeService
 from .wallpaper_names import WallpaperNameStore
 from .wallpapers import WallpaperService
+from .services import ServiceContainer
 
 __all__ = [
     "SettingsStore",
@@ -18,5 +19,6 @@ __all__ = [
     "WindowThemeService",
     "GtkThemeService",
     "InterfaceThemeService",
+    "ServiceContainer",
     "detect_external_tools",
 ]
