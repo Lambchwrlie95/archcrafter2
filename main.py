@@ -1539,14 +1539,32 @@ class ArchCrafter2App(Gtk.Application):
                     pass
 
         try:
-            pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(
-                str(image_path), width, height, True
-            )
+            orig = GdkPixbuf.Pixbuf.new_from_file(str(image_path))
+            orig_w = orig.get_width()
+            orig_h = orig.get_height()
+
+            target_ratio = width / height
+            orig_ratio = orig_w / orig_h
+
+            if orig_ratio > target_ratio:
+                scale_h = height
+                scale_w = int(height * orig_ratio)
+                x_offset = (scale_w - width) // 2
+                y_offset = 0
+            else:
+                scale_w = width
+                scale_h = int(width / orig_ratio)
+                x_offset = 0
+                y_offset = (scale_h - height) // 2
+
+            scaled = orig.scale_simple(scale_w, scale_h, GdkPixbuf.InterpType.BILINEAR)
+            cropped = scaled.new_subpixbuf(x_offset, y_offset, width, height)
+
             try:
-                pixbuf.savev(str(cache_path), "png", ["compression"], ["6"])
+                cropped.savev(str(cache_path), "png", ["compression"], ["6"])
             except Exception:
                 pass
-            return pixbuf
+            return cropped
         except Exception:
             return None
 
@@ -5134,9 +5152,9 @@ class ArchCrafter2App(Gtk.Application):
         available = max(1, viewport_width - side_margins)
 
         # Keep card footers fully visible in narrower layouts.
-        card_width = max(230, min(420, int(self.thumb_width)))
+        card_width = max(160, min(320, int(self.thumb_width)))
         columns = int((available + col_spacing) // max(1, card_width + col_spacing))
-        columns = max(1, min(3, columns))
+        columns = max(2, min(4, columns))
         self.wallpaper_flowbox.set_max_children_per_line(columns)
 
     def _sorted_filtered_wallpapers(self):
@@ -5204,8 +5222,8 @@ class ArchCrafter2App(Gtk.Application):
 
         GLib.idle_add(update_count)
 
-        thumb_w = max(180, min(420, int(self.thumb_width)))
-        thumb_h = max(100, int(thumb_w * 9 / 16))
+        thumb_w = max(160, min(320, int(self.thumb_width)))
+        thumb_h = max(120, int(thumb_w * 3 / 4))
 
         for entry in entries:
             if self.current_reload_id != reload_id:

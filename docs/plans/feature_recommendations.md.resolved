@@ -1,0 +1,117 @@
+# Loom Feature Opportunities — Bars, Menus & Config Tools
+
+## What Loom Already Does (Context)
+
+| Area | Current State |
+|---|---|
+| **Bar (Polybar/Tint2)** | Preset cards, install detection, config preview strip, apply by copying preset files, open in editor |
+| **Menu (Rofi/jgmenu/dmenu/etc.)** | 8 built-in presets, engine detection, session filtering (X11/Wayland), tag chips, command preview |
+| **GTK Themes** | Full scan, metadata extraction, color chips, preview render, apply via [gsettings](file:///home/lamb/.config/loom/backend/interface_themes.py#107-121) |
+| **Window Themes** | Scan Openbox themes, apply via `rc.xml` + `openbox --reconfigure` |
+| **Wallpapers** | Fully developed: grid/list, thumbnails, palette, colorize, rename, apply, delete |
+
+## Key Insight From the Research
+
+> **No mature "visual Polybar layout editor" exists.** The entire ricing community still configures bars via text files. The closest GUI help is template/color managers like wpgtk.
+
+This means **Loom's preset-based approach is already unique and fills a real gap.** You're not competing with established GUI editors — you *are* the GUI for this workflow.
+
+---
+
+## ✅ YES — Add These
+
+### 1. **Polybar Color/Theme Editing** (wpgtk-style, but built-in)
+Instead of a full layout editor (nobody has one), add:
+- **Color scheme picker** for the active Polybar config — parse `[colors]` section from `config.ini`, show swatches, let user pick new colors, write back
+- **Font selector** — show current font, let user pick from installed fonts
+- Loom already has the color infrastructure (palette extraction, swatches, hex pickers from the wallpaper colorize flow)
+
+> [!TIP]
+> This is the #1 pain point wpgtk tries to solve. Building it natively into Loom is higher value than presets alone.
+
+### 2. **Bar Config Backup/Snapshot Before Apply**
+- Before copying a preset over `~/.config/polybar/config.ini`, **auto-backup** the current config to `~/.config/polybar/config.ini.bak` or a timestamped copy
+- Show a "Restore previous" button after applying
+- This is cheap to implement and prevents the #1 fear users have
+
+### 3. **Live Preview with `polybar --reload`**
+- After applying a preset or color change, auto-run `polybar-msg cmd restart` (IPC) or `pkill -USR1 polybar` to live-reload
+- Show success/failure in the status infobar
+- Loom already does this pattern with `openbox --reconfigure`
+
+### 4. **jgmenu Config Editor (Simple)**
+- Parse `~/.config/jgmenu/jgmenurc` and expose the ~10 most useful keys as GUI controls: `tint2_look`, `menu_width`, `menu_height`, `color_menu_bg`, `color_norm_fg`, `font`, `icon_size`
+- NOT a full CSV menu editor — that's a rabbit hole the research confirms nobody has solved well
+- jgmenu already has `jgmenu_run init -i` for templates — Loom could just wrap that flow visually
+
+---
+
+## 🟡 MAYBE — Consider Carefully
+
+### 5. **Openbox Menu.xml Quick-Edit** (NOT a full editor)
+- The research shows Obmenu/Kickshaw already handle this well
+- What Loom *could* do: show the current Openbox menu tree as a **read-only preview** with a "Open in Obmenu" button — discovery, not duplication
+- Or: a simple "Add app to right-click menu" shortcut that appends one `<item>` to `menu.xml`
+- **Don't** build a full XML tree editor — Obmenu already exists and does it well
+
+### 6. **Tint2 Theme Browser**
+- Tint2 has a built-in `tint2conf` GUI, so there's less value in duplicating it
+- What Loom *could* add: scan `~/.config/tint2/` for multiple configs and let user switch between them (preset-switcher, not editor)
+
+### 7. **Template System (wpgtk-style)**
+- wpgtk's core idea: replace `{color0}`, `{color7}` keywords in config files when a wallpaper/colorscheme changes
+- This is powerful but adds significant complexity (template registration, keyword mapping, multi-file writes)
+- **Consider only after** the simpler color-picker approach (item #1) is built and validated
+
+---
+
+## ❌ NO — Don't Add These
+
+### 8. **Full Polybar Module Layout Designer**
+- The research confirms: nobody has built this, even as a standalone tool
+- The Polybar config model (INI sections with complex inter-module dependencies) resists visual editing
+- The ROI is terrible — huge effort, small audience, and ricers *prefer* text config for modules
+- **Stick with presets + color editing**
+
+### 9. **Openbox Keybinding Editor**
+- Obkey exists but is abandoned for a reason — keybinding editing is niche and users who care about it are comfortable with `rc.xml`
+- Not aligned with Loom's "visual ricing" purpose
+- Low demand, high complexity
+
+### 10. **Full jgmenu CSV Menu Editor**
+- jgmenu's CSV format is designed for scripting, not GUI editing
+- Building a CSV editor is building a spreadsheet app — not worth it
+- The research confirms: even the jgmenu community doesn't have one
+
+### 11. **MenuLibre Integration**
+- MenuLibre edits XDG [.desktop](file:///home/lamb/.local/share/applications/loom.desktop) files, which is a system-level concern
+- Loom is about *ricing* (visual appearance), not application management
+- Users who need this already have MenuLibre or know about it
+
+### 12. **ObConf/ObConf-Qt Replacement**
+- These are stable, packaged, and widely available
+- Duplicating their preferences UI inside Loom adds bloat without value
+- Loom's Window Themes page already covers the #1 use case (switching themes)
+
+---
+
+## Priority Roadmap
+
+```
+HIGH VALUE, LOW EFFORT          HIGH VALUE, HIGH EFFORT
+─────────────────────           ─────────────────────
+2. Backup before apply          1. Polybar color editor
+3. Live polybar reload          4. jgmenu config editor
+6. Tint2 config switcher        7. Template system
+
+
+LOW VALUE, LOW EFFORT           LOW VALUE, HIGH EFFORT
+─────────────────────           ─────────────────────
+5. Menu.xml "open in"           8. Module layout designer
+                                9. Keybinding editor
+                               10. CSV menu editor
+```
+
+## Summary
+
+**Loom's sweet spot is: scan → preview → apply → reload.** The research confirms that nobody has a visual "bar designer" — and for good reason. What *is* missing in the ecosystem is exactly what Loom can do well: **curated presets with one-click apply, simple color/font tweaks, and live reload.** Don't try to replace text editors; instead, make the 80% use case (switching looks) trivial.

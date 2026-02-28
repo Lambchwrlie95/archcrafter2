@@ -12,9 +12,9 @@ from .wallpaper_names import WallpaperNameStore
 SUPPORTED_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
 FILL_MODES = ["zoom-fill", "centered", "scaled", "tiled", "auto"]
 SORT_MODES = ["name_asc", "name_desc", "newest", "oldest"]
-THUMB_SIZE_MIN = 180
-THUMB_SIZE_MAX = 420
-THUMB_SIZE_DEFAULT = 280
+THUMB_SIZE_MIN = 160
+THUMB_SIZE_MAX = 320
+THUMB_SIZE_DEFAULT = 220
 ASKPASS_CANDIDATES = [
     "/usr/bin/ssh-askpass",
     "/usr/lib/ssh/ssh-askpass",
