@@ -1,7 +1,12 @@
 """Builder Home section page (moved from pages/builder)."""
 
-from pages.base import BasePage
+import gi
+
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk
+
 from pages import register_page
+from pages.base import BasePage
 
 
 @register_page
@@ -52,6 +57,12 @@ class BuilderHomePage(BasePage):
         ]
 
     def build(self, app, builder):
+        # Try to get from Glade, but create placeholder if not found (builder UI not yet implemented)
         widget = builder.get_object("page_builder_home")
+        if widget is None:
+            widget = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            label = Gtk.Label(label="Builder mode not yet implemented")
+            widget.pack_start(label, True, True, 0)
+            widget.show_all()
         self.widget = widget
         return widget

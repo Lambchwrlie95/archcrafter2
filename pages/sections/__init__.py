@@ -5,16 +5,18 @@ This module re-exports the individual section page classes and provides a
 from other parts of the application.
 """
 
-from pages.sections.wallpapers import WallpaperPage
+from pages.sections.builder_home import BuilderHomePage
+from pages.sections.cursor_themes import CursorThemesPage
 from pages.sections.fetch import FetchPage
 from pages.sections.gtk_themes import GtkThemesPage
-from pages.sections.window_themes import WindowThemesPage
 from pages.sections.icon_themes import IconThemesPage
-from pages.sections.cursor_themes import CursorThemesPage
-from pages.sections.panels import PanelsPage
 from pages.sections.menu import MenuPage
-from pages.sections.terminals import TerminalsPage
 from pages.sections.more import MorePage
+from pages.sections.panels import PanelsPage
+from pages.sections.settings import SettingsPage
+from pages.sections.terminals import TerminalsPage
+from pages.sections.wallpapers import WallpaperPage
+from pages.sections.window_themes import WindowThemesPage
 
 __all__ = [
     "WallpaperPage",
@@ -27,6 +29,8 @@ __all__ = [
     "MenuPage",
     "TerminalsPage",
     "MorePage",
+    "BuilderHomePage",
+    "SettingsPage",
     "SECTIONS",
     "ALL_PAGES",
 ]
@@ -42,6 +46,8 @@ SECTIONS = {
     "menu": MenuPage,
     "terminals": TerminalsPage,
     "more": MorePage,
+    "builder_home": BuilderHomePage,
+    "settings": SettingsPage,
 }
 
 ALL_PAGES = list(SECTIONS.values())
