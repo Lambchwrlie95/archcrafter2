@@ -208,7 +208,7 @@
                     </child>
 
                     <child>
-                      <object class="GtkListBoxRow" id="row_jgmenu">
+                      <object class="GtkListBoxRow" id="row_menu">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <child>

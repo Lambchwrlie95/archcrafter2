@@ -125,8 +125,8 @@ def get_sidebar_items_for_mode(mode: str) -> list:
 
 
 def create_page_instance(page_id: str, app: "ArchCrafter2App") -> Optional[BasePage]:
-    """Create an instance of a page by ID using the registry."""
-    page_cls = _PAGE_REGISTRY.get(page_id)
+    """Create an instance of a page by ID using the registry or SECTIONS."""
+    page_cls = get_section_class(page_id) or _PAGE_REGISTRY.get(page_id)
     if page_cls:
         return page_cls()
     return None
